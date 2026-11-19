@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config   import settings
 from app.core.enum     import STATUS_CODE_ENUM
+from app.core.log      import logger
 from app.core.security import (
     create_access_token
     , create_refresh_token
@@ -118,6 +119,12 @@ class AuthService:
             )
         )
         session.commit()
+
+        login_message = f"AuthService.login: username: {username}, status: {login_status}, ip: {ip_address}"
+        if login_status == "FAILED":
+            logger.warn(login_message, f"reason: {failure_reason}")
+        else:
+            logger.info(login_message)
 
 
     @classmethod

@@ -43,6 +43,8 @@ services:
         order: start-first
       restart_policy:
         condition: on-failure
+    volumes:
+      - {{ deploy_dir }}/logs:/workspace/logs
     networks:
       - swarm_network
 

@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN adduser --disabled-password --gecos '' --uid 1000 appuser \
+RUN mkdir -p /workspace/logs/archived \
+    && adduser --disabled-password --gecos '' --uid 1000 appuser \
     && chown -R appuser:appuser /workspace
 
 USER appuser
