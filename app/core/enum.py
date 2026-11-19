@@ -60,3 +60,13 @@ class SEX_ENUM(str, Enum):
     MALE   = "M"
     FEMALE = "F"
     OTHER  = "O"
+
+
+class TRAFFIC_TYPE_ENUM(str, Enum):
+    INBOUND  = "INBOUND"
+    OUTBOUND = "OUTBOUND"
+
+
+class CHANNEL_ENUM(str, Enum):
+    API    = "API"
+    SYSTEM = "SYSTEM"

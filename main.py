@@ -1,3 +1,4 @@
+import traceback
 from contextlib import asynccontextmanager
 from typing     import AsyncGenerator
 from uuid       import uuid4
@@ -7,10 +8,11 @@ from fastapi.exceptions      import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions    import HTTPException as StarletteHTTPException
 
-from app.api.v1.router import router as v1_router
-from app.core.config   import settings
-from app.core.log      import logger
-from app.middleware    import LogMiddleware, TraceMiddleware
+from app.api.v1.router     import router as v1_router
+from app.core.config       import settings
+from app.core.httpx_client import create_httpx_client, set_global_httpx_client
+from app.core.log          import logger
+from app.middleware        import LogMiddleware, TraceMiddleware
 
 process_id = uuid4()
 
@@ -18,9 +20,21 @@ process_id = uuid4()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"Process started... {process_id}")
+
+    httpx_client           = create_httpx_client()
+    app.state.httpx_client = httpx_client
+    set_global_httpx_client(httpx_client)
+
     try:
         yield
     finally:
+        set_global_httpx_client(None)
+        app.state.httpx_client = None
+        try:
+            await httpx_client.aclose()
+        except Exception:
+            logger.error(f"Error closing httpx client\n{traceback.format_exc()}")
+
         logger.info(f"Process stopped... {process_id}")
 
 
