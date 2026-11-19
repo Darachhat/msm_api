@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
+*.py[codz]
 *$py.class
 
 # C extensions
@@ -20,12 +20,42 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environments
-.env/
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+*.lcov
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Environments
+.env
+.env.*
+!.env.example
+.envrc
+.venv
 .venv/
 env/
 venv/
@@ -33,18 +63,14 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables
-.env
-.env.*
-!.env.example
+# Conda environments
+conda-meta/
 
-# Testing & Coverage
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
+# mypy / ruff
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
 
 # IDE & OS
 .idea/
@@ -52,6 +78,7 @@ htmlcov/
 Thumbs.db
 *.swp
 *.swo
+tempCodeRunnerFile.py
 
 # Logs
 logs/
