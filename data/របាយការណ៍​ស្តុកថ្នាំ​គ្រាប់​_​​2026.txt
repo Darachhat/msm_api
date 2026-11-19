@@ -1,0 +1,59 @@
+"ព្រះរាជាណាចក្រកម្ពុជា
+ជាតិ សាសនា ព្រះមហាក្សត្រ
+
+"								
+"      ​​  ក្រសួងសុខាភិបាល                                    
+មន្ទីរពេទ្យមិត្តភាពខ្មែរ-សូវៀត
+ផ្នែកប្រពោធនកម្មសល្យសាស្រ្ត
+"								
+								
+								
+								
+"របាយការណ៍ ចំណូល-ចំណាយ សម្ភារៈបរិក្ខាពេទ្យ-ឪសថប្រចាំថ្ងៃ
+ ប្រចាំថ្ងៃទី………..…..ខែ………….….ឆ្នាំ២០២៦"								
+								
+ល.រ	សំភារ ឪសថ និងបរិក្ខា	ប្រភេទ	កំរិត	ចំនួនសល់ពីមុន	ចំនួនបន្ថែម	ចំនួនសរុប	ចំនួនសល់	ផ្សេងៗ
+1	Amlodipine	គ្រាប់						
+2	Amoxilline	គ្រាប់						
+3	Augmentin	គ្រាប់						
+4	Aspirine	គ្រាប់						
+5	Azithromycine	គ្រាប់						
+6	Bicarbonate	គ្រាប់						
+7	Bromhexine	គ្រាប់						
+8	Catapressan	គ្រាប់						
+9	Ceftirine 10mg	គ្រាប់						
+10	Cinacalcet	គ្រាប់						
+11	Cloderm Cream	គ្រាប់						
+12	Cotrim	គ្រាប់						
+13	Coveram	គ្រាប់						
+14	Detran	គ្រាប់						
+15	Diazepam	គ្រាប់						
+16	Duphalac	គ្រាប់						
+17	Empiget	គ្រាប់						
+18	K-check	គ្រាប់						
+19	Lactulose	គ្រាប់						
+20	Lepivat	គ្រាប់						
+21	Losartan	គ្រាប់						
+22	Mestinon	គ្រាប់						
+23	Moxifloxaxine	គ្រាប់						
+24	Multivitamine	គ្រាប់						
+25	Nimotop	គ្រាប់						
+26	Nifuratoine	គ្រាប់						
+27	Normacol	គ្រាប់						
+28	Paracetamol	គ្រាប់						
+29	Phenobarbital	គ្រាប់						
+30	Propranolol	គ្រាប់						
+31	Propylthiourcil	គ្រាប់						
+32	Rolex	គ្រាប់						
+33	Safcor	គ្រាប់						
+34	Septyl Mouth wash	គ្រាប់						
+35	Sevelamer	គ្រាប់						
+36	Sodium Chloride	គ្រាប់						
+37	Sotio	គ្រាប់						
+38	Tasmi 	គ្រាប់						
+39	Tamiflu	គ្រាប់						
+40	Tamsolin	គ្រាប់						
+41	Telmisartan	គ្រាប់						
+42	Tobramycine	គ្រាប់						
+43	Uchlorine	គ្រាប់						
+44	Vitamine B1B6B12	គ្រាប់						

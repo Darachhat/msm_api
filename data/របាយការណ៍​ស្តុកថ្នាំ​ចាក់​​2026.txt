@@ -1,0 +1,117 @@
+"ព្រះរាជាណាចក្រកម្ពុជា
+ជាតិ សាសនា ព្រះមហាក្សត្រ
+
+"								
+"      ​​  ក្រសួងសុខាភិបាល                                    
+មន្ទីរពេទ្យមិត្តភាពខ្មែរ-សូវៀត
+ផ្នែកប្រពោធនកម្មសល្យសាស្រ្ត
+"								
+								
+								
+								
+"របាយការណ៍ ចំណូល-ចំណាយ សម្ភារៈបរិក្ខាពេទ្យ-ឪសថប្រចាំថ្ងៃ
+ ប្រចាំថ្ងៃទី………..…..ខែ………….….ឆ្នាំ២០២៦"								
+								
+ល.រ	សំភារ ឪសថ និងបរិក្ខា	ប្រភេទ	កំរិត	ចំនួនសល់ពីមុន	ចំនួនបន្ថែម	ចំនួនសរុប	ចំនួនសល់	ផ្សេងៗ
+1	Adrénaline 	Amp	1mg					
+2	Adenosim	Amp	6mg					
+3	Albumine	FL	10g					
+4	Atropine    	Amp	1mg					
+5	Amikacine   	FL	500mg					
+6	Amiodarone   	Amp	150mg					
+7	Aminoplasma	FL	500ml					
+8	Ampicilline	FL	1g					
+9	Augmentin	FL	1g					
+10	Bicarbonate de sodium	Amp	1g					
+11	Bromhexine	Amp	8mg					
+12	Brainact	Amp	1g					
+13	Buthylhyoscine 	Amp	20mg					
+14	Butorphanol	Amp	2mg					
+15	Butorphanol	Amp	1mg					
+16	Calcium Gluconate	Amp	500mg					
+17	Ceftriaxone	FL	1g					
+18	Ceftazidime	FL	1g					
+19	Cefractam	FL	1g					
+20	Cimetidine 	Amp	200mg					
+21	Ciprofloxacine	FL	200mg					
+22	Chlorpromazine	Amp	50mg					
+23	Clindamycine	Amp	300mg					
+24	Dexamethasone	Amp	4mg					
+25	Diazepam	Amp	10mg					
+26	Dicynone  	Amp	250mg					
+27	Diclofenac	Amp	1ml					
+28	Digoxin 	Amp	5mg					
+29	Dobutamine	FL	250mg					
+30	Dopamine 	Amp	200mg					
+31	Erytromycine	FL	500mg					
+32	Fentanyl 	Amp	100µg					
+33	Furosemide 	Amp	20mg					
+34	Gentamycine 	Amp	80mg					
+35	Glycerine	FL						
+36	Glucose	FL	50ml					
+37	Glucose	Amp	10ml					
+38	Haloperidol	Amp	10mg					
+39	Hepagart	Amp	10ml					
+40	Heparine 	FL	5ml					
+41	Hydralazine 	Amp	20mg					
+42	Hydrocortisone 	FL	100mg					
+43	Insuline Actrapide 	FL	20mg					
+44	Kabiven	FL						
+45	Ketamine	FL	500mg					
+46	Leveget	FL	500mg					
+47	Levoflxacine	FL	500ml					
+48	Lidocaine	FL	0.02					
+49	Linezolide	FL	600mg					
+50	Lipofundine	FL	500ml					
+51	Lovenox	FL	0.4ml					
+52	Lovenox	FL	0.6ml					
+53	Magnesium ampoule 	Amp	2ml					
+54	Mannitol	FL	0.2					
+55	Meronem	FL	1g					
+56	Metoclopramide 	Amp	10mg					
+57	Métronidazole 	FL	100ml					
+58	Midazolam	Amp	5mg					
+59	Morphine 	Amp	10mg					
+60	Moxifloxacine 	FL	500ml					
+61	NaCl	Amp	2g					
+62	NaCl	Amp	4g					
+63	Nicardipine	Amp	10mg					
+64	Nitroglycerin	Amp	50mg					
+65	Noradrenaline	Amp	2mg					
+66	Noradrenaline	Amp	8mg					
+67	Norcuron	FL	10mg					
+68	Normacol	Gel						
+69	Octreotide	Amp	1ml					
+70	Omeprazol	FL	40mg					
+71	Paracétamol	FL	300mg					
+72	Paracétamol	FL	1g					
+73	Penicilline	FL	1g					
+74	Plasma Substitute	FL	500ml					
+75	Potassium chloride 	Amp	1g					
+76	Povidone Iodine	Solution	0.1					
+77	Propofol	FL	200ml					
+78	Salbutamol Spray 	Aerosol						
+79	Salbutamol Nebuliser	Amp	1ml					
+80	Sandostatine	Amp	1ml					
+81	Serum Dextrose ½	FL	500ml					
+82	Serum Dextrose 5%	FL	500ml					
+83	Serum Dextrose 10% 	FL	500ml					
+84	Serum Lactate	FL	500ml					
+85	Serum Lactate	FL	1000ml					
+86	Serum Sale 0,9% 	FL	100ml					
+87	Sérum Sale 0,9%	FL	500ml					
+88	Sérum Sale 0,9%	FL	1000ml					
+89	Solumedrol	FL	125mg					
+90	Spasfon	Amp						
+91	Suxamethaonium	Amp	100mg					
+92	Tanganil	Amp	500mg					
+93	Tazine	FL	4,5g					
+94	Thiopental	FL	1g					
+95	Tramadol ampoule	Amp	100mg					
+96	Tranexamic Acid	Amp	500mg					
+97	Vancomycine	FL	500mg					
+98	Vancomycine	FL	1g					
+99	Vitamine B1	Amp						
+100	Vitamine C	Amp	1g					
+101	Vitamine K1	Amp	100mg					
+102	Xylocaine Gel	FL	0.02					

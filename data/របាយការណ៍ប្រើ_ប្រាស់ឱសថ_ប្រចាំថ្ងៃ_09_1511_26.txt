@@ -1,0 +1,109 @@
+	មន្ទីរពេទ្យមិត្តភាពខ្មែរ-សូវៀត																
+	ផ្នែកប្រពោធនកម្មសល្យសាស្រ្ត																
+	របាយការណ៍ចំណូលចំណាយ និងសំណើឱសថ																
+	ចាប់ពីថ្ងៃទី ០៩ ខែ វិច្ឆិកា ឆ្នាំ ២០២៦ ដល់ថ្ងៃទី ១៥ ខែ វិច្ឆិកា ឆ្នាំ ២០២៦																
+	ល.រ	ឱសថ	ប្រភេទ	កម្រិត	ដើមគ្រា	ចំណូល	បរិមាណប្រើប្រាស់							ចំណាយសរុប	ចំនួនសល់	ចំនួនស្នើសុំ	ចំនួនផ្ដល់
+							៩	១០	១១	១២	១៣	១៤	១៥				
+	1	Adrénaline 	Amp	1mg	341		48		46	41	22	05		162	179		
+	2	Adenosim	Amp	6mg	00									00	00		
+	3	Albumine	FL	10g	00	02							02	02	00		
+	4	Atropine    	Amp	1mg	30									00	30		
+	5	Amikacine   	FL	500mg	151		10	06	08	06	08	06	04	48	103		
+	6	Amiodarone   	Amp	150mg	00	03		03						03	00		
+	7	Aminoplasma	FL	500ml	57		02	01	02	03	06	02	02	18	39		
+	8	Ampicilline	FL	1g	00									00	00		
+	9	Augmentin	FL	1g	189		03	03	03	03	03	03	03	21	168		
+	10	Bicarbonate de sodium	Amp	1g	104				18				05	23	81		
+	11	Bromhexine	Amp	8mg	40		03	03						06	34		
+	12	Brainact	Amp	1g	00								02	02	-02		
+	13	Buthylhyoscine 	Amp	20mg	20									00	20		
+	14	Butorphanol	Amp	2mg	00									00	00		
+	15	Butorphanol	Amp	1mg	00									00	00		
+	16	Calcium Gluconate	Amp	500mg	358		07	09	14	14	07	08	26	85	273		
+	17	Ceftriaxone	FL	1g	410		44	34	40	34	34	32	44	262	148		
+	18	Ceftazidime	FL	1g	50	56	15	08	12	15	10	10	12	82	24		
+	19	Cefractam	FL	1g	00	16				04	04	04	04	16	00		
+	20	Cimetidine 	Amp	200mg	571		52	50	46	58	42	44	46	338	233		
+	21	Ciprofloxacine	FL	200mg	111		09	04	02	04	03	04	04	30	81		
+	22	Chlorpromazine	Amp	50mg	54		01	03		03			02	09	45		
+	23	Clindamycine	Amp	300mg	00									00	00		
+	24	Dexamethasone	Amp	4mg	263		06	08	08	06	08	12	06	54	209		
+	25	Diazepam	Amp	10mg	00									00	00		
+	26	Dicynone  	Amp	250mg	02	40	04	03	03	03	03	03	03	22	20		
+	27	Diclofenac	Amp	1ml	00									00	00		
+	28	Digoxin 	Amp	5mg	00									00	00		
+	29	Dobutamine	FL	250mg	05									00	05		
+	30	Dopamine 	Amp	200mg	52		01							01	51		
+	31	Erytromycine	FL	500mg	00									00	00		
+	32	Fentanyl 	Amp	100µg	21		01		01				01	03	18		
+	33	Furosemide 	Amp	20mg	52		06	05	09	01	02			23	29		
+	34	Gentamycine 	Amp	80mg	114				02	02	02	02	04	12	102		
+	35	Glycerine	FL		00									00	00		
+	36	Glucose	FL	50ml	00									00	00		
+	37	Glucose	Amp	10ml	717		20	05	40	45	10	40	70	230	487		
+	38	Haloperidol	Amp	10mg	00									00	00		
+	39	Hepagart	Amp	10ml	14				02					02	12		
+	40	Heparine 	FL	5ml	03									00	03		
+	41	Hydralazine 	Amp	20mg	08									00	08		
+	42	Hydrocortisone 	FL	100mg	42		07		02	05	04	02	06	26	16		
+	43	Insuline Actrapide 	FL	20mg	04									00	04		
+	44	Kabiven	FL		00									00	00		
+	45	Ketamine	FL	500mg	01									00	01		
+	46	Leveget	FL	500mg	00									00	00		
+	47	Levoflxacine	FL	500ml	48		03	03		05	05	05	05	26	22		
+	48	Lidocaine	FL	2%	05									00	05		
+	49	Linezolide	FL	600mg	00									00	00		
+	50	Lipofundine	FL	500ml	22		02		03	02				07	15		
+	51	Lovenox	FL	0.4ml	33									00	33		
+	52	Lovenox	FL	0.6ml	00									00	00		
+	53	Magnesium ampoule 	Amp	2ml	38								03	03	35		
+	54	Mannitol	FL	20%	09			02						02	07		
+	55	Meronem	FL	1g	00	39	07	06	09	03	05	03	03	36	03		
+	56	Metoclopramide 	Amp	10mg	58		06	01	03	04	03	03	10	30	28		
+	57	Métronidazole 	FL	100ml	345		30	24	26	26	22	22	18	168	177		
+	58	Midazolam	Amp	5mg	79	120	21	12	29	21	20	06	03	112	87		
+	59	Morphine 	Amp	10mg	24		02	02	02				03	09	15		
+	60	Moxifloxacine 	FL	500ml	16							01	01	02	14		
+	61	NaCl	Amp	2g	46				14	04			03	21	25		
+	62	NaCl	Amp	4g										00	00		
+	63	Nicardipine	Amp	10mg	84		06							06	78		
+	64	Nitroglycerin	Amp	50mg	00									00	00		
+	65	Noradrenaline	Amp	2mg	01									00	01		
+	66	Noradrenaline	Amp	8mg	75		06	12	09	09	12	12	14	74	01		
+	67	Norcuron	FL	10mg	05				02					02	03		
+	68	Normacol	Gel		00	02			01	01				02	00		
+	69	Octreotide	Amp	1ml	01	06					02	02	02	06	01		
+	70	Omeprazol	FL	40mg	55		05	04	04	02	05	04	04	28	27		
+	71	Paracétamol	FL	300mg	1548		187	170	164	168	144	171	189	1193	355		
+	72	Paracétamol	FL	1g	49									00	49		
+	73	Penicilline	FL	1g	00									00	00		
+	74	Plasma Substitute	FL	500ml	04	02	01				01			02	04		
+	75	Potassium chloride 	Amp	1g	50		01	01	06	06	02		07	23	27		
+	76	Povidone Iodine	Solution	10%	12		01	01	01	01				04	08		
+	77	Propofol	FL	200ml	17									00	17		
+	78	Salbutamol Spray 	Aerosol		03									00	03		
+	79	Salbutamol Nebuliser	Amp	1ml	48					03			03	06	42		
+	80	Sandostatine	Amp	1ml	00									00	00		
+	81	Serum Dextrose ½	FL	500ml	40		09	03			03	02	04	21	19		
+	82	Serum Dextrose 5%	FL	500ml	145		10	10	05	08	04	06	10	53	92		
+	83	Serum Dextrose 10% 	FL	500ml	21		01	02	03	02	02	02	02	14	07		
+	84	Serum Lactate	FL	500ml	136		15	17	13	10	15	21	19	110	26		
+	85	Serum Lactate	FL	1000ml	00									00	00		
+	86	Serum Sale 0,9% 	FL	100ml	00									00	00		
+	87	Sérum Sale 0,9%	FL	500ml	839		68	63	85	80	71	79	80	526	313		
+	88	Sérum Sale 0,9%	FL	1000ml	00									00	00		
+	89	Solumedrol	FL	125mg	00	04		02	02					04	00		
+	90	Spasfon	Amp		00									00	00		
+	91	Suxamethaonium	Amp	100mg	17									00	17		
+	92	Tanganil	Amp	500mg	00									00	00		
+	93	Tazine	FL	4,5g	00	03								00	03		
+	94	Thiopental	FL	1g	67		02		05	09	07		02	25	42		
+	95	Tramadol ampoule	Amp	100mg	770		77	69	74	73	64	75	74	506	264		
+	96	Tranexamic Acid	Amp	500mg	59	50	14	12	22	20	22	14	15	119	-10		
+	97	Vancomycine	FL	500mg	00									00	00		
+	98	Vancomycine	FL	1g	06	26	02	02	04	06	06	06	05	31	01		
+	99	Vitamine B1	Amp		00									00	00		
+	100	Vitamine C	Amp	1g	00									00	00		
+	101	Vitamine K1	Amp	100mg	98		07	08	12	10	10	06	06	59	39		
+	102	Xylocaine Gel	FL	2%	01				01					01	00		
+		  នាយកមន្ទីរពេទ្យ	មន្ត្រីគ្រប់គ្រងឱសថ				នាយផ្នែក				នាយសាល			អ្នកទទួល		អ្នកប្រគល់	
