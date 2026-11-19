@@ -29,7 +29,7 @@ Pull requests only run the `test` job.
 | `SERVER_IP`, `SERVER_USER` | Swarm manager host and SSH user (user must be in the `docker` group) |
 | `SSH_PRIVATE_KEY` | Private key for that user |
 | `GHCR_PULL_TOKEN` | PAT with `read:packages` so the server can pull the image |
-| `DB_PASS`, `JWT_SECRET_KEY` | App secrets |
+| `DB_PASS`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` | App & RS256 JWT secrets |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Cloudflare R2 |
 | `SUDO_PASSWORD` | Optional, only if `USE_SUDO=true` |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Optional notifications |

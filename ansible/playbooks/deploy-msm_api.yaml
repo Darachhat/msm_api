@@ -9,7 +9,8 @@
     # so they never appear on the command line or in the process list.
     registry_password: "{{ lookup('env', 'GHCR_PULL_TOKEN') }}"
     db_pass: "{{ lookup('env', 'DB_PASS') }}"
-    jwt_secret_key: "{{ lookup('env', 'JWT_SECRET_KEY') }}"
+    jwt_private_key: "{{ lookup('env', 'JWT_PRIVATE_KEY') }}"
+    jwt_public_key: "{{ lookup('env', 'JWT_PUBLIC_KEY') }}"
     r2_access_key_id: "{{ lookup('env', 'R2_ACCESS_KEY_ID') }}"
     r2_secret_access_key: "{{ lookup('env', 'R2_SECRET_ACCESS_KEY') }}"
     white_list_cors: "{{ lookup('env', 'WHITE_LIST_CORS') | default('[\"*\"]', true) }}"
