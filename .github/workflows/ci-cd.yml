@@ -1,0 +1,238 @@
+name: CI/CD
+
+# Branch -> environment mapping (same model as the GitLab pipeline in hub_api):
+#   dev -> dev | uat -> uat | staging -> staging | prod -> prod (approval required)
+# Create a GitHub Environment with each of those names and store its secrets/variables there.
+
+on:
+  push:
+    branches: [dev, uat, staging, prod]
+  pull_request:
+    branches: [dev, uat, staging, prod]
+  workflow_dispatch:
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APPLICATION: msm_api
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/msm_api
+  DOCKER_REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ---------------------------------------------------------------- test
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile check
+        run: python -m compileall -q app main.py
+
+      - name: Import check (app boots without a database)
+        run: python -c "from main import app; print('routes:', len(app.routes))"
+
+  # --------------------------------------------------------------- build
+  build:
+    name: Build image
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image reference
+        id: meta
+        run: |
+          IMAGE=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          TAG=$(git rev-parse --short HEAD)
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"     >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:${{ github.ref_name }}-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -------------------------------------------------------------- deploy
+  deploy:
+    name: Deploy (${{ github.ref_name }})
+    needs: build
+    if: github.event_name != 'pull_request' && contains(fromJSON('["dev","uat","staging","prod"]'), github.ref_name)
+    runs-on: ubuntu-latest
+    # Environment name == branch name. Add "Required reviewers" to the `prod`
+    # environment to get the manual-approval gate that GitLab's `when: manual` gave.
+    environment:
+      name: ${{ github.ref_name }}
+      url: ${{ vars.SERVICE_URL }}
+    env:
+      ENVIRONMENT_NAME: ${{ github.ref_name }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+      DB_PASS: ${{ secrets.DB_PASS }}
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      ANSIBLE_BECOME_PASS: ${{ secrets.SUDO_PASSWORD }}
+      WHITE_LIST_CORS: ${{ vars.WHITE_LIST_CORS || '["*"]' }}
+      ANSIBLE_CONFIG: ansible/ansible.cfg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          pip install --user "ansible-core>=2.16,<2.18"
+          ansible-galaxy collection install community.docker
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Verify SSH connection
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 "$SERVER_USER@$SERVER_IP" 'echo SSH connection successful'; then
+              exit 0
+            fi
+            echo "SSH attempt $attempt failed, retrying..."; sleep 5
+          done
+          echo "ERROR: could not connect to $SERVER_USER@$SERVER_IP"; exit 1
+
+      - name: Run Ansible playbook
+        working-directory: ansible
+        env:
+          ANSIBLE_PRIVATE_KEY_FILE: ~/.ssh/id_deploy
+        run: |
+          ansible-playbook \
+            -i inventories/${ENVIRONMENT_NAME}.yaml \
+            playbooks/deploy-msm_api.yaml \
+            -e "docker_registry=${{ env.DOCKER_REGISTRY }}" \
+            -e "docker_image=${{ needs.build.outputs.image }}" \
+            -e "docker_tag=${{ needs.build.outputs.tag }}" \
+            -e "registry_user=${{ github.repository_owner }}" \
+            -e "api_replicas=${{ vars.SERVICE_REPLICAS || '1' }}" \
+            -e "use_sudo=${{ vars.USE_SUDO || 'false' }}" \
+            -e "app_port=${{ vars.PORT || '8000' }}" \
+            -e "app_url=${{ vars.SERVICE_URL }}" \
+            -e "db_dialect=${{ vars.DB_DIALECT || 'postgresql+psycopg' }}" \
+            -e "db_host=${{ vars.DB_HOST }}" \
+            -e "db_port=${{ vars.DB_PORT || '5432' }}" \
+            -e "db_name=${{ vars.DB_NAME }}" \
+            -e "db_user=${{ vars.DB_USER }}" \
+            -e "db_ssl=${{ vars.DB_SSL || 'disable' }}" \
+            -e "r2_account_id=${{ vars.R2_ACCOUNT_ID }}" \
+            -e "r2_endpoint_url=${{ vars.R2_ENDPOINT_URL }}" \
+            -e "r2_bucket_name=${{ vars.R2_BUCKET_NAME }}" \
+            -e "r2_public_url=${{ vars.R2_PUBLIC_URL }}"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_deploy
+
+  # -------------------------------------------------------------- notify
+  notify:
+    name: Notify (Telegram)
+    needs: [build, deploy]
+    if: always() && github.event_name != 'pull_request' && needs.build.result != 'skipped'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    steps:
+      - name: Send Telegram message
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          SERVICE_URL: ${{ vars.SERVICE_URL }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram credentials missing - skipping."; exit 0
+          fi
+          if [ "$BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
+            ICON="✅"; STATUS="success"
+          else
+            ICON="❌"; STATUS="failed"
+          fi
+          esc() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
+          COMMIT_TEXT=$(printf '%s' "$COMMIT_MESSAGE" | head -n 5 | esc)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          MESSAGE="<code>${ICON} ${APPLICATION}, ${{ github.ref_name }}, ${{ github.actor }}
+          -----------------------------
+          ENVIRONMENT : ${{ github.ref_name }}
+          APPLICATION : ${APPLICATION}
+          STATUS      : ${ICON} ${STATUS}
+          BUILD       : ${BUILD_RESULT}
+          DEPLOY      : ${DEPLOY_RESULT}
+          HASH        : ${GITHUB_SHA::7}
+          MESSAGE     : ${COMMIT_TEXT}
+          -----------------------------
+          </code>
+          <a href=\"${COMMIT_URL}\">Commit</a> | <a href=\"${RUN_URL}\">Run</a>"
+          if [ -n "$SERVICE_URL" ]; then MESSAGE="${MESSAGE} | <a href=\"${SERVICE_URL}\">Service</a>"; fi
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="$TELEGRAM_CHAT_ID" \
+            --data-urlencode text="$MESSAGE" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true
+
+  # ----------------------------------------------------------- cve scan
+  cve-scan:
+    name: CVE scan (OSV)
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install osv-scanner
+        run: |
+          curl -sSLf "https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64" -o osv-scanner
+          chmod +x osv-scanner
+
+      - name: Scan requirements.txt
+        run: ./osv-scanner --format json --output osv-report.json -L requirements.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: osv-report-${{ github.ref_name }}
+          path: osv-report.json
+          retention-days: 30

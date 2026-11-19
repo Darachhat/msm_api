@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  service:
+    image: {{ docker_image }}:{{ docker_tag }}
+    environment:
+      - PORT={{ app_port }}
+      - ENVIRONMENT={{ env }}
+      - PROJECT_NAME=Medicine Stock Management API
+      - API_V1_STR=/api/v1
+      - APP_BASE_URL={{ app_url }}
+      - DB_DIALECT={{ db_dialect }}
+      - DB_HOST={{ db_host }}
+      - DB_PORT={{ db_port }}
+      - DB_NAME={{ db_name }}
+      - DB_USER={{ db_user }}
+      - DB_PASS={{ db_pass }}
+      - DB_SSL={{ db_ssl }}
+      - JWT_SECRET_KEY={{ jwt_secret_key }}
+      - R2_ACCOUNT_ID={{ r2_account_id }}
+      - R2_ENDPOINT_URL={{ r2_endpoint_url }}
+      - R2_ACCESS_KEY_ID={{ r2_access_key_id }}
+      - R2_SECRET_ACCESS_KEY={{ r2_secret_access_key }}
+      - R2_BUCKET_NAME={{ r2_bucket_name }}
+      - R2_PUBLIC_URL={{ r2_public_url }}
+      - 'WHITE_LIST_CORS={{ white_list_cors }}'
+    ports:
+      - "{{ app_port }}:{{ app_port }}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:{{ app_port }}/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      replicas: {{ api_replicas | default(1) }}
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+      restart_policy:
+        condition: on-failure
+    networks:
+      - swarm_network
+
+networks:
+  swarm_network:
+    external: true

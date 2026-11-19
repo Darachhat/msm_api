@@ -1,0 +1,15 @@
+.git
+.github
+.vscode
+ansible
+__pycache__
+*.py[cod]
+.env
+.env.*
+!.env.example
+.venv
+venv
+logs
+*.log
+Dockerfile
+.dockerignore
