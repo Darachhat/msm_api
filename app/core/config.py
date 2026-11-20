@@ -24,7 +24,6 @@ class Settings(BaseSettings):
     DB_SSL     : str = "disable"
 
     # JWT Auth (RS256 asymmetric keys via env)
-    JWT_ALGORITHM                   : str = "RS256"
     JWT_PRIVATE_KEY                 : str = ""
     JWT_PUBLIC_KEY                  : str = ""
     JWT_ISSUER                      : str = "msm_api"
@@ -54,14 +53,13 @@ class Settings(BaseSettings):
     SMTP_FROM                     : str  = "no-reply@msm.local"
     SMTP_USE_TLS                  : bool = True
 
-    # Cloudflare R2
+    # Cloudflare R2 (optional fallback; primary config lives in auth.system CLOUDFLARE_R2)
     R2_ACCOUNT_ID               : str = ""
     R2_ENDPOINT_URL             : str = ""
     R2_ACCESS_KEY_ID            : str = ""
     R2_SECRET_ACCESS_KEY        : str = ""
     R2_BUCKET_NAME              : str = "medicine-stock-reports"
     R2_REGION                   : str = "auto"
-    R2_PUBLIC_URL               : str = ""
     R2_PRESIGNED_EXPIRE_SECONDS : int = 3600
 
     # CORS & Limits

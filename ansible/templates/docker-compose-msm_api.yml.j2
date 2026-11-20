@@ -16,7 +16,6 @@ services:
       - DB_USER={{ db_user }}
       - DB_PASS={{ db_pass }}
       - DB_SSL={{ db_ssl }}
-      - JWT_ALGORITHM=RS256
       - JWT_PRIVATE_KEY={{ jwt_private_key }}
       - JWT_PUBLIC_KEY={{ jwt_public_key }}
       - JWT_ISSUER={{ jwt_issuer | default('msm_api') }}
@@ -33,7 +32,6 @@ services:
       - R2_ACCESS_KEY_ID={{ r2_access_key_id }}
       - R2_SECRET_ACCESS_KEY={{ r2_secret_access_key }}
       - R2_BUCKET_NAME={{ r2_bucket_name }}
-      - R2_PUBLIC_URL={{ r2_public_url }}
       - 'WHITE_LIST_CORS={{ white_list_cors }}'
     ports:
       - "{{ app_port }}:{{ app_port }}"

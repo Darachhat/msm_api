@@ -163,7 +163,6 @@ jobs:
             -e "r2_account_id=${{ vars.R2_ACCOUNT_ID }}" \
             -e "r2_endpoint_url=${{ vars.R2_ENDPOINT_URL }}" \
             -e "r2_bucket_name=${{ vars.R2_BUCKET_NAME }}" \
-            -e "r2_public_url=${{ vars.R2_PUBLIC_URL }}" \
             -e "jwt_issuer=${{ vars.JWT_ISSUER || 'msm_api' }}" \
             -e "jwt_audience=${{ vars.JWT_AUDIENCE || 'msm_client' }}" \
             -e "cookie_secure=${{ vars.COOKIE_SECURE || 'true' }}" \
