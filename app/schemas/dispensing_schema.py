@@ -3,7 +3,7 @@ from decimal  import Decimal
 from typing   import List, Optional
 from uuid     import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class DispensingItemInput(BaseModel):
@@ -59,8 +59,7 @@ class DispensingItemResponse(BaseModel):
     signature_note : Optional[str]  = None
     note           : Optional[str]  = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class DispensingResponse(BaseModel):
@@ -83,5 +82,4 @@ class DispensingResponse(BaseModel):
     created_datetime : datetime
     items            : List[DispensingItemResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

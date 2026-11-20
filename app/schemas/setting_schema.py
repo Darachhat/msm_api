@@ -2,7 +2,7 @@ from datetime import datetime
 from typing   import List, Optional
 from uuid     import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import ConfigDict, BaseModel, EmailStr, Field
 
 
 class ServiceModuleResponse(BaseModel):
@@ -12,8 +12,7 @@ class ServiceModuleResponse(BaseModel):
     description : Optional[str] = None
     sort_order  : int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class RolePermissionInput(BaseModel):
@@ -33,8 +32,7 @@ class RolePermissionResponse(BaseModel):
     can_update   : bool
     can_delete   : bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class RoleCreate(BaseModel):
@@ -52,8 +50,7 @@ class RoleResponse(BaseModel):
     status_code : str
     permissions : List[RolePermissionResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class UserCreateByAdmin(BaseModel):
@@ -87,5 +84,4 @@ class LoginHistoryResponse(BaseModel):
     failure_reason : Optional[str]  = None
     login_datetime : datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

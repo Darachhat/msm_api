@@ -11,6 +11,7 @@
     db_pass: "{{ lookup('env', 'DB_PASS') }}"
     jwt_private_key: "{{ lookup('env', 'JWT_PRIVATE_KEY') }}"
     jwt_public_key: "{{ lookup('env', 'JWT_PUBLIC_KEY') }}"
+    smtp_pass: "{{ lookup('env', 'SMTP_PASS') }}"
     r2_access_key_id: "{{ lookup('env', 'R2_ACCESS_KEY_ID') }}"
     r2_secret_access_key: "{{ lookup('env', 'R2_SECRET_ACCESS_KEY') }}"
     white_list_cors: "{{ lookup('env', 'WHITE_LIST_CORS') | default('[\"*\"]', true) }}"

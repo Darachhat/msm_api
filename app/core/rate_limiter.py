@@ -74,3 +74,13 @@ login_rate_limiter = SlidingWindowRateLimiter(
     max_attempts     = settings.LOGIN_RATE_LIMIT_MAX_ATTEMPTS
     , window_seconds = settings.LOGIN_RATE_LIMIT_WINDOW_SECONDS
 )
+
+forgot_password_rate_limiter = SlidingWindowRateLimiter(
+    max_attempts     = 5
+    , window_seconds = 900
+)
+
+register_rate_limiter = SlidingWindowRateLimiter(
+    max_attempts     = 10
+    , window_seconds = 900
+)

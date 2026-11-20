@@ -26,13 +26,22 @@ router = APIRouter()
     , summary        = "List medicines"
 )
 def list_medicines(
-    category_code : Optional[str] = Query(None)
-    , is_narcotic : Optional[bool] = Query(None)
-    , search      : Optional[str] = Query(None)
-    , session     : Session = Depends(getSession)
-    , current_user: USER_MODEL = Depends(get_current_user)
+    category_code  : Optional[str]  = Query(None)
+    , is_narcotic  : Optional[bool] = Query(None)
+    , search       : Optional[str]  = Query(None)
+    , limit        : int            = Query(100, ge = 1, le = 500)
+    , offset       : int            = Query(0, ge = 0)
+    , session      : Session        = Depends(getSession)
+    , current_user : USER_MODEL     = Depends(get_current_user)
 ):
-    rows = MedicineService.list_medicines(session, category_code, is_narcotic, search)
+    rows = MedicineService.list_medicines(
+        session         = session
+        , category_code = category_code
+        , is_narcotic   = is_narcotic
+        , search        = search
+        , limit         = limit
+        , offset        = offset
+    )
     return IResponseBase(data = [MedicineResponse.model_validate(r) for r in rows])
 
 

@@ -720,3 +720,26 @@ class ExcelReportService:
             , f"username: {username}"
         )
         return export_row
+
+
+    @staticmethod
+    def list_reports(
+        session            : Session
+        , report_type_code : Optional[str] = None
+        , department_code  : Optional[str] = None
+        , limit            : int           = 100
+        , offset           : int           = 0
+    ) -> List[REPORT_EXPORT_MODEL]:
+        query = (
+            session.query(REPORT_EXPORT_MODEL)
+            .options(joinedload(REPORT_EXPORT_MODEL.file_object))
+            .filter(
+                REPORT_EXPORT_MODEL.status_code == STATUS_CODE_ENUM.ACTIVE.value
+                , REPORT_EXPORT_MODEL.deleted_datetime.is_(None)
+            )
+        )
+        if report_type_code:
+            query = query.filter(REPORT_EXPORT_MODEL.report_type_code == report_type_code)
+        if department_code:
+            query = query.filter(REPORT_EXPORT_MODEL.department_code == department_code)
+        return query.order_by(REPORT_EXPORT_MODEL.created_datetime.desc()).offset(offset).limit(limit).all()

@@ -64,8 +64,10 @@ class Settings(BaseSettings):
     R2_PUBLIC_URL               : str = ""
     R2_PRESIGNED_EXPIRE_SECONDS : int = 3600
 
-    # CORS
-    WHITE_LIST_CORS : List[str] = ["*"]
+    # CORS & Limits
+    WHITE_LIST_CORS            : List[str] = ["*"]
+    MAX_LOG_BODY_BYTES         : int       = 65536
+    MAX_SIGNATURE_UPLOAD_BYTES : int       = 2 * 1024 * 1024
 
 
 settings = Settings()

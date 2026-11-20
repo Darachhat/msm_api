@@ -7,9 +7,10 @@ from sqlalchemy     import or_
 from sqlalchemy.orm import Session
 
 from app.core.config       import settings
+from app.core.constants    import utc_now_naive
 from app.core.enum         import STATUS_CODE_ENUM
 from app.core.log          import logger
-from app.core.rate_limiter import login_rate_limiter
+from app.core.rate_limiter import forgot_password_rate_limiter, login_rate_limiter, register_rate_limiter
 from app.core.security     import (
     create_access_token
     , generate_csrf_token
@@ -122,7 +123,19 @@ class AuthService:
 
 
     @staticmethod
-    def register(session: Session, payload: RegisterRequest) -> USER_MODEL:
+    def register(
+        session      : Session
+        , payload    : RegisterRequest
+        , created_by : Optional[str] = None
+        , ip_address : Optional[str] = None
+    ) -> USER_MODEL:
+        rate_keys = [f"reg:actor:{created_by or payload.username}"]
+        if ip_address:
+            rate_keys.append(f"reg:ip:{ip_address}")
+        register_rate_limiter.enforce(rate_keys)
+        for key in rate_keys:
+            register_rate_limiter.record_attempt(key)
+
         existing = (
             session.query(USER_MODEL)
             .filter(USER_MODEL.username == payload.username)
@@ -156,7 +169,7 @@ class AuthService:
             , is_active       = True
             , token_version   = 0
             , status_code     = STATUS_CODE_ENUM.ACTIVE.value
-            , created_by      = payload.username
+            , created_by      = created_by or payload.username
         )
         session.add(user)
         session.flush()
@@ -680,6 +693,13 @@ class AuthService:
     ) -> ForgotPasswordResponse:
         """Issue a single-use hashed reset token and dispatch email (returns dev token/link in dev mode)."""
         identifier = payload.identifier.strip()
+        rate_keys  = [f"fp:id:{identifier.lower()}"]
+        if ip_address:
+            rate_keys.append(f"fp:ip:{ip_address}")
+        forgot_password_rate_limiter.enforce(rate_keys)
+        for key in rate_keys:
+            forgot_password_rate_limiter.record_attempt(key)
+
         user       = (
             session.query(USER_MODEL)
             .filter(

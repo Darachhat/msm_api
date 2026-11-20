@@ -3,7 +3,7 @@ from decimal  import Decimal
 from typing   import List, Optional
 from uuid     import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class PatientCreate(BaseModel):
@@ -42,8 +42,7 @@ class PatientResponse(BaseModel):
     status_code      : str
     created_datetime : datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class PatientMedicineUsageItem(BaseModel):

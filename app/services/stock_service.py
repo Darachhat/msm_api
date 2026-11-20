@@ -1,9 +1,10 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing   import List, Optional
 
 from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.constants         import utc_now_naive
 from app.core.enum              import STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.models.base_data_model import MEDICINE_MODEL
@@ -108,7 +109,7 @@ class StockService:
                 ledger.supplied_qty     = item.supplied_qty
                 ledger.note             = item.note
                 ledger.updated_by       = username
-                ledger.updated_datetime = datetime.utcnow()
+                ledger.updated_datetime = utc_now_naive()
             results.append(ledger)
 
         session.commit()
@@ -131,8 +132,10 @@ class StockService:
         , stock_date      : Optional[date] = None
         , start_date      : Optional[date] = None
         , end_date        : Optional[date] = None
-        , category_code   : Optional[str] = None
-        , department_code : Optional[str] = None
+        , category_code   : Optional[str]  = None
+        , department_code : Optional[str]  = None
+        , limit           : int            = 100
+        , offset          : int            = 0
     ) -> List[StockLedgerResponse]:
         query = (
             session.query(STOCK_LEDGER_MODEL)
@@ -154,10 +157,15 @@ class StockService:
         if department_code:
             query = query.filter(STOCK_LEDGER_MODEL.department_code == department_code)
 
-        rows = query.order_by(
-            STOCK_LEDGER_MODEL.stock_date.desc()
-            , MEDICINE_MODEL.sort_order
-        ).all()
+        rows = (
+            query.order_by(
+                STOCK_LEDGER_MODEL.stock_date.desc()
+                , MEDICINE_MODEL.sort_order
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
         return [cls._to_response(r) for r in rows]
 
 
@@ -243,7 +251,7 @@ class StockService:
             ledger.added_qty        = (ledger.added_qty or 0) + payload.total_qty
             ledger.remaining_qty    = (ledger.opening_qty or 0) + ledger.added_qty - (ledger.used_qty or 0)
             ledger.updated_by       = username
-            ledger.updated_datetime = datetime.utcnow()
+            ledger.updated_datetime = utc_now_naive()
 
         session.commit()
         session.refresh(batch)
@@ -266,6 +274,8 @@ class StockService:
         , tab                  : Optional[str] = None  # TABLET | INJECTION | NARCOTIC
         , department_code      : Optional[str] = None
         , expiring_within_days : Optional[int] = None
+        , limit                : int           = 100
+        , offset               : int           = 0
     ) -> List[StockBatchResponse]:
         query = (
             session.query(STOCK_BATCH_MODEL)
@@ -294,8 +304,13 @@ class StockService:
                 , STOCK_BATCH_MODEL.expire_date <= cutoff
             )
 
-        rows = query.order_by(
-            STOCK_BATCH_MODEL.expire_date.asc().nullslast()
-            , STOCK_BATCH_MODEL.input_date.desc()
-        ).all()
+        rows = (
+            query.order_by(
+                STOCK_BATCH_MODEL.expire_date.asc().nullslast()
+                , STOCK_BATCH_MODEL.input_date.desc()
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
         return [cls._batch_to_response(r) for r in rows]

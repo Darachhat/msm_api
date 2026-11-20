@@ -9,11 +9,15 @@ from fastapi.responses   import JSONResponse
 from sqlalchemy.orm      import Session
 from starlette.types     import ASGIApp, Receive, Scope, Send
 
-from app.core.db       import getStaticSession
-from app.core.enum     import AUTH_TYPE_ENUM, CHANNEL_ENUM, STATUS_CODE_ENUM, TRAFFIC_TYPE_ENUM
-from app.core.log      import logger
-from app.core.security import decode_token
-from app.middleware.types import AuthContext
+from app.core.constants        import utc_now_naive
+from app.core.db               import getStaticSession
+from app.core.enum             import AUTH_TYPE_ENUM, CHANNEL_ENUM, STATUS_CODE_ENUM, TRAFFIC_TYPE_ENUM
+from app.core.log              import logger
+from app.core.security         import decode_token
+from app.core.system_log_utils import SystemLogUtils
+from app.middleware.types      import AuthContext
+from app.schemas.base_schema   import IResponseBase, get_ulid
+from app.schemas.system_log_schema import SYSTEM_LOG_DATA
 from app.models.auth_model import (
     CREDENTIAL_API_KEY_MODEL
     , CREDENTIAL_BASIC_MODEL
@@ -30,11 +34,46 @@ _SUPPORTED_AUTH_TYPES = frozenset({
 })
 
 
-def _unauthorized_json(detail: str) -> JSONResponse:
+def _unauthorized_json(request: Request, detail: str) -> JSONResponse:
+    trace_id = get_ulid()
+    now_utc  = utc_now_naive()
+    body     = IResponseBase(
+        trace_id  = trace_id
+        , status  = 0
+        , message = detail
+        , data    = None
+    ).model_dump()
+
+    # Audit rejected 401 attempts into track.system_log as well
+    SystemLogUtils.write_system_log_in_background(
+        SYSTEM_LOG_DATA(
+            traffic_type           = TRAFFIC_TYPE_ENUM.INBOUND.value
+            , system_code          = "UNAUTHENTICATED"
+            , channel              = CHANNEL_ENUM.API.value
+            , request_method       = request.method
+            , request_endpoint     = str(request.url.path)
+            , request_netloc       = f"{request.url.scheme}://{request.url.netloc}" if request.url.netloc else None
+            , request_content_type = request.headers.get("content-type")
+            , request_user_agent   = request.headers.get("user-agent")
+            , request_headers      = SystemLogUtils.sanitize_headers(dict(request.headers))
+            , requested_datetime   = now_utc
+            , client_ip            = request.client.host if request.client else None
+            , response_code        = status.HTTP_401_UNAUTHORIZED
+            , response_body        = body
+            , response_duration    = 0.0
+            , response_datetime    = now_utc
+            , client_log_id        = trace_id
+            , status_code          = STATUS_CODE_ENUM.ACTIVE.value
+            , created_datetime     = now_utc
+        )
+    )
     return JSONResponse(
         status_code = status.HTTP_401_UNAUTHORIZED
-        , content   = {"status": 0, "message": detail, "data": None}
-        , headers   = {"WWW-Authenticate": "Bearer"}
+        , content   = body
+        , headers   = {
+            "WWW-Authenticate" : "Bearer"
+            , "X-Request-ID"   : trace_id
+        }
     )
 
 
@@ -186,7 +225,6 @@ class AuthMiddleware:
         , "/openapi.json"
         , "/health"
         , "/api/v1/auth/login"
-        , "/api/v1/auth/register"
         , "/api/v1/auth/refresh"
         , "/api/v1/auth/logout"
         , "/api/v1/auth/forgot-password"
@@ -219,7 +257,7 @@ class AuthMiddleware:
         auth_type, auth_value = self._extract_auth(request)
         if not auth_type or not auth_value:
             logger.warn(f"AuthMiddleware: missing auth header for '{path}'")
-            await _unauthorized_json("Missing or unrecognized authentication header.")(scope, receive, send)
+            await _unauthorized_json(request, "Missing or unrecognized authentication header.")(scope, receive, send)
             return
 
         client_type = (request.headers.get("X-Client-Type") or "web").strip().lower()
@@ -232,15 +270,22 @@ class AuthMiddleware:
             )
         except Exception as auth_error:
             logger.error(f"AuthMiddleware: resolution error for '{path}': {str(auth_error)}")
+            trace_id = get_ulid()
             await JSONResponse(
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-                , content   = {"status": 0, "message": "Internal server error", "data": None}
+                , content   = IResponseBase(
+                    trace_id  = trace_id
+                    , status  = 0
+                    , message = "Internal server error"
+                    , data    = None
+                ).model_dump()
+                , headers   = {"X-Request-ID": trace_id}
             )(scope, receive, send)
             return
 
         if auth_context is None:
             logger.warn(f"AuthMiddleware: invalid or revoked credential for '{path}'")
-            await _unauthorized_json("Invalid, expired, or revoked credentials.")(scope, receive, send)
+            await _unauthorized_json(request, "Invalid, expired, or revoked credentials.")(scope, receive, send)
             return
 
         request.state.auth_context = auth_context

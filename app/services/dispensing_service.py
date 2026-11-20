@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from decimal  import Decimal
 from typing   import List, Optional
 from uuid     import UUID
@@ -6,6 +6,7 @@ from uuid     import UUID
 from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.constants         import utc_now_naive
 from app.core.enum              import STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.models.base_data_model import MEDICINE_MODEL
@@ -98,7 +99,7 @@ class DispensingService:
                 - ledger.used_qty
             )
             ledger.updated_by       = username
-            ledger.updated_datetime = datetime.utcnow()
+            ledger.updated_datetime = utc_now_naive()
 
 
     @staticmethod
@@ -239,6 +240,8 @@ class DispensingService:
         , end_date        : Optional[date] = None
         , category_code   : Optional[str]  = None
         , department_code : Optional[str]  = None
+        , limit           : int            = 100
+        , offset          : int            = 0
     ) -> List[DispensingResponse]:
         query = (
             session.query(PATIENT_DISPENSING_MODEL)
@@ -257,10 +260,15 @@ class DispensingService:
         if department_code:
             query = query.filter(PATIENT_DISPENSING_MODEL.department_code == department_code)
 
-        rows = query.order_by(
-            PATIENT_DISPENSING_MODEL.dispense_date.desc()
-            , PATIENT_DISPENSING_MODEL.patient_no
-        ).all()
+        rows = (
+            query.order_by(
+                PATIENT_DISPENSING_MODEL.dispense_date.desc()
+                , PATIENT_DISPENSING_MODEL.patient_no
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
         return [cls._to_response(r) for r in rows]
 
 
@@ -313,12 +321,28 @@ class DispensingService:
         for k, v in data.items():
             setattr(record, k, v)
         record.updated_by       = username
-        record.updated_datetime = datetime.utcnow()
+        record.updated_datetime = utc_now_naive()
 
         if payload.items is not None:
-            session.query(PATIENT_DISPENSING_ITEM_MODEL).filter(
-                PATIENT_DISPENSING_ITEM_MODEL.dispensing_id == record.id
-            ).delete()
+            old_items = (
+                session.query(PATIENT_DISPENSING_ITEM_MODEL)
+                .filter(
+                    PATIENT_DISPENSING_ITEM_MODEL.dispensing_id == record.id
+                    , PATIENT_DISPENSING_ITEM_MODEL.deleted_datetime.is_(None)
+                )
+                .all()
+            )
+            for old_item in old_items:
+                cls._sync_stock_usage(
+                    session           = session
+                    , stock_date      = record.dispense_date
+                    , department_code = record.department_code
+                    , medicine_id     = old_item.medicine_id
+                    , delta_qty       = -(old_item.quantity or Decimal("0"))
+                    , username        = username
+                )
+                session.delete(old_item)
+
             for item_in in payload.items:
                 med = cls._resolve_medicine(session, item_in)
                 session.add(
@@ -326,10 +350,19 @@ class DispensingService:
                         dispensing_id    = record.id
                         , medicine_id    = med.id
                         , quantity       = item_in.quantity
+                        , signature_id   = item_in.signature_id
                         , signature_note = item_in.signature_note
                         , note           = item_in.note
                         , created_by     = username
                     )
+                )
+                cls._sync_stock_usage(
+                    session           = session
+                    , stock_date      = record.dispense_date
+                    , department_code = record.department_code
+                    , medicine_id     = med.id
+                    , delta_qty       = item_in.quantity
+                    , username        = username
                 )
 
         session.commit()
@@ -345,6 +378,7 @@ class DispensingService:
     def delete_dispensing(cls, session: Session, dispensing_id: UUID, username: str) -> None:
         record = (
             session.query(PATIENT_DISPENSING_MODEL)
+            .options(joinedload(PATIENT_DISPENSING_MODEL.items))
             .filter(
                 PATIENT_DISPENSING_MODEL.id == dispensing_id
                 , PATIENT_DISPENSING_MODEL.deleted_datetime.is_(None)
@@ -361,9 +395,25 @@ class DispensingService:
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Dispensing record not found."
             )
+
+        now_utc = utc_now_naive()
+        for item in record.items:
+            if item.deleted_datetime is None:
+                cls._sync_stock_usage(
+                    session           = session
+                    , stock_date      = record.dispense_date
+                    , department_code = record.department_code
+                    , medicine_id     = item.medicine_id
+                    , delta_qty       = -(item.quantity or Decimal("0"))
+                    , username        = username
+                )
+                item.status_code      = STATUS_CODE_ENUM.DELETED.value
+                item.deleted_by       = username
+                item.deleted_datetime = now_utc
+
         record.status_code      = STATUS_CODE_ENUM.DELETED.value
         record.deleted_by       = username
-        record.deleted_datetime = datetime.utcnow()
+        record.deleted_datetime = now_utc
         session.commit()
         logger.info(
             "DispensingService.delete_dispensing: soft-deleted"

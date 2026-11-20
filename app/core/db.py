@@ -1,11 +1,21 @@
-from sqlalchemy     import create_engine
-from sqlalchemy.orm import Session as SessionType, sessionmaker
+from sqlalchemy        import create_engine
+from sqlalchemy.engine import URL
+from sqlalchemy.orm    import Session as SessionType, sessionmaker
 
 from app.core.config import settings
 
+database_url = URL.create(
+    drivername = settings.DB_DIALECT
+    , username = settings.DB_USER
+    , password = settings.DB_PASS
+    , host     = settings.DB_HOST
+    , port     = int(settings.DB_PORT)
+    , database = settings.DB_NAME
+    , query    = {"sslmode": settings.DB_SSL}
+)
+
 engine = create_engine(
-    f"{settings.DB_DIALECT}://{settings.DB_USER}:{settings.DB_PASS}"
-    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?sslmode={settings.DB_SSL}"
+    database_url
     , pool_size     = 10
     , max_overflow  = 5
     , pool_timeout  = 10
@@ -25,6 +35,9 @@ def getSession():
     session = Session()
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 

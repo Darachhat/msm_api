@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing   import Any, Dict, Optional
 from uuid     import UUID
 
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 
 
 class ReportGenerateRequest(BaseModel):
@@ -30,8 +30,7 @@ class FileObjectResponse(BaseModel):
     accessed_count   : int
     created_datetime : datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class ReportExportResponse(BaseModel):
@@ -46,5 +45,4 @@ class ReportExportResponse(BaseModel):
     created_datetime : datetime
     file_object      : Optional[FileObjectResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

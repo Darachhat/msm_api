@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid   import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class MedicineCreate(BaseModel):
@@ -41,8 +41,7 @@ class MedicineResponse(BaseModel):
     sort_order      : int
     status_code     : str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class DepartmentResponse(BaseModel):
@@ -54,5 +53,4 @@ class DepartmentResponse(BaseModel):
     hospital_name_kh : Optional[str] = None
     doc_number       : Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

@@ -1,10 +1,10 @@
-from datetime import datetime
-from typing   import List, Optional
-from uuid     import UUID
+from typing import List, Optional
+from uuid   import UUID
 
 from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.constants         import utc_now_naive
 from app.core.enum              import STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.models.base_data_model import (
@@ -20,10 +20,12 @@ class MedicineService:
 
     @staticmethod
     def list_medicines(
-        session           : Session
-        , category_code   : Optional[str] = None
-        , is_narcotic     : Optional[bool] = None
-        , search          : Optional[str] = None
+        session         : Session
+        , category_code : Optional[str]  = None
+        , is_narcotic   : Optional[bool] = None
+        , search        : Optional[str]  = None
+        , limit         : int            = 100
+        , offset        : int            = 0
     ) -> List[MEDICINE_MODEL]:
         query = session.query(MEDICINE_MODEL).filter(
             MEDICINE_MODEL.status_code == STATUS_CODE_ENUM.ACTIVE.value
@@ -35,11 +37,16 @@ class MedicineService:
             query = query.filter(MEDICINE_MODEL.is_narcotic == is_narcotic)
         if search:
             query = query.filter(MEDICINE_MODEL.name.ilike(f"%{search}%"))
-        return query.order_by(
-            MEDICINE_MODEL.category_code
-            , MEDICINE_MODEL.sort_order
-            , MEDICINE_MODEL.name
-        ).all()
+        return (
+            query.order_by(
+                MEDICINE_MODEL.category_code
+                , MEDICINE_MODEL.sort_order
+                , MEDICINE_MODEL.name
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
 
     @staticmethod
@@ -106,7 +113,7 @@ class MedicineService:
         for field, value in payload.model_dump(exclude_unset = True).items():
             setattr(med, field, value)
         med.updated_by       = username
-        med.updated_datetime = datetime.utcnow()
+        med.updated_datetime = utc_now_naive()
         session.commit()
         session.refresh(med)
         logger.info(
@@ -122,7 +129,7 @@ class MedicineService:
         med = cls.get_medicine(session, medicine_id)
         med.status_code      = STATUS_CODE_ENUM.DELETED.value
         med.deleted_by       = username
-        med.deleted_datetime = datetime.utcnow()
+        med.deleted_datetime = utc_now_naive()
         session.commit()
         logger.info(
             "MedicineService.delete_medicine: soft-deleted"

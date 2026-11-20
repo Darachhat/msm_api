@@ -5,16 +5,18 @@ from uuid     import UUID
 from fastapi        import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps.auth_deps        import get_current_user
-from app.core.db                   import getSession
-from app.models.auth_model         import USER_MODEL
-from app.schemas.base_schema       import IResponseBase
-from app.schemas.dispensing_schema import (
+from app.api.deps.auth_deps          import require_permission, require_resource_permission
+from app.core.db                     import getSession
+from app.core.enum                   import PERMISSION_ACTION_ENUM, SERVICE_MODULE_ENUM
+from app.models.auth_model           import USER_MODEL
+from app.schemas.base_schema         import IResponseBase
+from app.schemas.dispensing_schema   import (
     DispensingCreate
     , DispensingResponse
     , DispensingUpdate
 )
 from app.services.dispensing_service import DispensingService
+from app.services.permission_service import PermissionService
 
 router = APIRouter()
 
@@ -26,9 +28,12 @@ router = APIRouter()
 )
 def create_dispensing(
     payload        : DispensingCreate
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(get_current_user)
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.WRITE)
+    )
 ):
+    PermissionService.enforce_department_scope(current_user, payload.department_code)
     res = DispensingService.create_dispensing(session, payload, current_user.username)
     return IResponseBase(
         data      = res
@@ -44,12 +49,27 @@ def create_dispensing(
 def list_dispensing(
     start_date        : Optional[date] = Query(None)
     , end_date        : Optional[date] = Query(None)
-    , category_code   : Optional[str] = Query(None)
-    , department_code : Optional[str] = Query(None)
-    , session         : Session = Depends(getSession)
-    , current_user    : USER_MODEL = Depends(get_current_user)
+    , category_code   : Optional[str]  = Query(None)
+    , department_code : Optional[str]  = Query(None)
+    , limit           : int            = Query(100, ge = 1, le = 500)
+    , offset          : int            = Query(0, ge = 0)
+    , session         : Session        = Depends(getSession)
+    , current_user    : USER_MODEL     = Depends(
+        require_resource_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.READ)
+    )
 ):
-    res = DispensingService.list_dispensing(session, start_date, end_date, category_code, department_code)
+    effective_dept = department_code or (
+        None if current_user.role_code == "ADMIN" else current_user.department_code
+    )
+    res = DispensingService.list_dispensing(
+        session           = session
+        , start_date      = start_date
+        , end_date        = end_date
+        , category_code   = category_code
+        , department_code = effective_dept
+        , limit           = limit
+        , offset          = offset
+    )
     return IResponseBase(data = res)
 
 
@@ -60,10 +80,13 @@ def list_dispensing(
 )
 def get_dispensing(
     dispensing_id  : UUID
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(get_current_user)
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.READ)
+    )
 ):
     res = DispensingService.get_dispensing(session, dispensing_id)
+    PermissionService.enforce_department_scope(current_user, res.department_code)
     return IResponseBase(data = res)
 
 
@@ -75,9 +98,13 @@ def get_dispensing(
 def update_dispensing(
     dispensing_id  : UUID
     , payload      : DispensingUpdate
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(get_current_user)
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.UPDATE)
+    )
 ):
+    existing = DispensingService.get_dispensing(session, dispensing_id)
+    PermissionService.enforce_department_scope(current_user, existing.department_code)
     res = DispensingService.update_dispensing(session, dispensing_id, payload, current_user.username)
     return IResponseBase(
         data      = res
@@ -92,9 +119,13 @@ def update_dispensing(
 )
 def delete_dispensing(
     dispensing_id  : UUID
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(get_current_user)
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.DELETE)
+    )
 ):
+    existing = DispensingService.get_dispensing(session, dispensing_id)
+    PermissionService.enforce_department_scope(current_user, existing.department_code)
     DispensingService.delete_dispensing(session, dispensing_id, current_user.username)
     return IResponseBase(
         data      = {"id": str(dispensing_id)}

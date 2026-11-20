@@ -1,13 +1,13 @@
 import secrets
 import urllib.parse
-from datetime import datetime
-from typing   import Optional
+from typing import Optional
 
-from fastapi          import HTTPException, status
+from fastapi           import HTTPException, status
 from fastapi.responses import Response
-from sqlalchemy.orm   import Session
+from sqlalchemy.orm    import Session
 
 from app.core.config        import settings
+from app.core.constants     import utc_now_naive
 from app.core.enum          import STATUS_CODE_ENUM
 from app.core.log           import logger
 from app.models.data_model  import FILE_OBJECT_MODEL
@@ -36,7 +36,7 @@ class FileService:
     ) -> FILE_OBJECT_MODEL:
         clean_ext   = ext if ext.startswith(".") else f".{ext}"
         path_code   = cls._generate_path_code()
-        date_prefix = datetime.utcnow().strftime("%Y/%m/%d")
+        date_prefix = utc_now_naive().strftime("%Y/%m/%d")
         object_key  = f"{module}/{date_prefix}/{path_code}{clean_ext}"
 
         R2ObjectService.upload_bytes(

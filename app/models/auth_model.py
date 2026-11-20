@@ -6,6 +6,7 @@ from sqlalchemy                     import Boolean, DateTime, ForeignKey, Intege
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm                 import Mapped, mapped_column, relationship
 
+from app.core.constants    import utc_now_naive
 from app.core.enum         import ROLE_CODE_ENUM
 from app.models.base_model import Base
 
@@ -182,7 +183,7 @@ class LOGIN_HISTORY_MODEL(Base):
     user_agent     : Mapped[Optional[str]]       = mapped_column(Text, nullable=True)
     login_status   : Mapped[str]                 = mapped_column(String(20), nullable=False)  # SUCCESS | FAILED
     failure_reason : Mapped[Optional[str]]       = mapped_column(String(255), nullable=True)
-    login_datetime : Mapped[datetime]            = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    login_datetime : Mapped[datetime]            = mapped_column(DateTime, nullable=False, default=utc_now_naive)
 
 
 class SYSTEM_MODEL(Base):
@@ -195,8 +196,9 @@ class SYSTEM_MODEL(Base):
     code        : Mapped[str]           = mapped_column(String(100), nullable=False, unique=True)
     name        : Mapped[str]           = mapped_column(String(255), nullable=False)
     description : Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    base_url    : Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    scope       : Mapped[str]           = mapped_column(String(50), nullable=False, default="INTERNAL")
+    base_url      : Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    scope         : Mapped[str]           = mapped_column(String(50), nullable=False, default="INTERNAL")
+    metadata_json : Mapped[Optional[Any]] = mapped_column(JSONB, nullable=True)
 
 
 class SYSTEM_CREDENTIAL_MODEL(Base):

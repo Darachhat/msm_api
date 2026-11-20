@@ -34,12 +34,14 @@ router = APIRouter()
 )
 def list_users(
     search         : Optional[str] = Query(None)
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(
+    , limit        : int           = Query(100, ge = 1, le = 500)
+    , offset       : int           = Query(0, ge = 0)
+    , session      : Session       = Depends(getSession)
+    , current_user : USER_MODEL    = Depends(
         require_permission(SERVICE_MODULE_ENUM.SETTING.value, PERMISSION_ACTION_ENUM.READ)
     )
 ):
-    users = SettingService.list_users(session, search)
+    users = SettingService.list_users(session, search = search, limit = limit, offset = offset)
     return IResponseBase(data = [UserResponse.model_validate(u) for u in users])
 
 

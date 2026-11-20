@@ -82,10 +82,12 @@ class SignatureService:
     @classmethod
     def list_previous_signatures(
         cls
-        , session      : Session
-        , user_id      : Optional[UUID] = None
-        , signer_role  : Optional[str] = None
-        , signer_name  : Optional[str] = None
+        , session     : Session
+        , user_id     : Optional[UUID] = None
+        , signer_role : Optional[str]  = None
+        , signer_name : Optional[str]  = None
+        , limit       : int            = 100
+        , offset      : int            = 0
     ) -> List[SignatureResponse]:
         query = (
             session.query(DIGITAL_SIGNATURE_MODEL)
@@ -102,8 +104,13 @@ class SignatureService:
         if signer_name:
             query = query.filter(DIGITAL_SIGNATURE_MODEL.signer_name.ilike(f"%{signer_name}%"))
 
-        rows = query.order_by(
-            DIGITAL_SIGNATURE_MODEL.is_default.desc()
-            , DIGITAL_SIGNATURE_MODEL.created_datetime.desc()
-        ).all()
+        rows = (
+            query.order_by(
+                DIGITAL_SIGNATURE_MODEL.is_default.desc()
+                , DIGITAL_SIGNATURE_MODEL.created_datetime.desc()
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
         return [cls._to_response(r) for r in rows]

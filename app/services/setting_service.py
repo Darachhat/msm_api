@@ -1,14 +1,14 @@
-from datetime import datetime
 from typing   import List, Optional
 from uuid     import UUID
 
 from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.constants         import utc_now_naive
 from app.core.enum              import STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.core.security          import hash_password
-from app.models.auth_model      import LOGIN_HISTORY_MODEL, ROLE_MODEL, USER_MODEL
+from app.models.auth_model      import LOGIN_HISTORY_MODEL, REFRESH_TOKEN_MODEL, ROLE_MODEL, USER_MODEL
 from app.schemas.setting_schema import (
     RoleCreate
     , RolePermissionResponse
@@ -23,14 +23,19 @@ class SettingService:
     """Manages Users, Roles, Permissions, and Login History for the Setting tab."""
 
     @staticmethod
-    def list_users(session: Session, search: Optional[str] = None) -> List[USER_MODEL]:
+    def list_users(
+        session  : Session
+        , search : Optional[str] = None
+        , limit  : int           = 100
+        , offset : int           = 0
+    ) -> List[USER_MODEL]:
         query = session.query(USER_MODEL).filter(USER_MODEL.deleted_datetime.is_(None))
         if search:
             query = query.filter(
                 (USER_MODEL.username.ilike(f"%{search}%"))
                 | (USER_MODEL.full_name.ilike(f"%{search}%"))
             )
-        return query.order_by(USER_MODEL.created_datetime.desc()).all()
+        return query.order_by(USER_MODEL.created_datetime.desc()).offset(offset).limit(limit).all()
 
 
     @staticmethod
@@ -110,20 +115,40 @@ class SettingService:
                 , detail    = "User not found."
             )
 
-        data = payload.model_dump(exclude_unset = True)
+        data                 = payload.model_dump(exclude_unset = True)
+        must_revoke_sessions = False
         if "password" in data:
             pw = data.pop("password")
             if pw:
-                user.password_hash = hash_password(pw)
+                user.password_hash   = hash_password(pw)
+                must_revoke_sessions = True
+        if data.get("is_active") is False:
+            must_revoke_sessions = True
         for k, v in data.items():
             setattr(user, k, v)
+
+        now_utc               = utc_now_naive()
         user.updated_by       = actor
-        user.updated_datetime = datetime.utcnow()
+        user.updated_datetime = now_utc
+
+        if must_revoke_sessions:
+            user.token_version = (user.token_version or 0) + 1
+            session.query(REFRESH_TOKEN_MODEL).filter(
+                REFRESH_TOKEN_MODEL.user_id == user.id
+                , REFRESH_TOKEN_MODEL.revoked.is_(False)
+            ).update({
+                "revoked"            : True
+                , "revoked_datetime" : now_utc
+                , "revoke_reason"    : "ADMIN_USER_UPDATED"
+                , "updated_by"       : actor
+            })
+
         session.commit()
         session.refresh(user)
         logger.info(
             "SettingService.update_user: updated"
             , f"user_id: {user_id}"
+            , f"revoked_sessions: {must_revoke_sessions}"
             , f"actor: {actor}"
         )
         return user
@@ -149,13 +174,24 @@ class SettingService:
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "User not found."
             )
+        now_utc               = utc_now_naive()
         user.is_active        = False
+        user.token_version    = (user.token_version or 0) + 1
         user.status_code      = STATUS_CODE_ENUM.DELETED.value
         user.deleted_by       = actor
-        user.deleted_datetime = datetime.utcnow()
+        user.deleted_datetime = now_utc
+        session.query(REFRESH_TOKEN_MODEL).filter(
+            REFRESH_TOKEN_MODEL.user_id == user.id
+            , REFRESH_TOKEN_MODEL.revoked.is_(False)
+        ).update({
+            "revoked"            : True
+            , "revoked_datetime" : now_utc
+            , "revoke_reason"    : "ADMIN_USER_DELETED"
+            , "updated_by"       : actor
+        })
         session.commit()
         logger.info(
-            "SettingService.delete_user: soft-deleted"
+            "SettingService.delete_user: soft-deleted and sessions revoked"
             , f"user_id: {user_id}"
             , f"actor: {actor}"
         )

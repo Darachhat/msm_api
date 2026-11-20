@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal  import Decimal
 from typing   import Dict, List, Optional
 from uuid     import UUID
@@ -6,6 +6,7 @@ from uuid     import UUID
 from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.constants         import utc_now_naive
 from app.core.enum              import REPORT_PERIOD_ENUM, STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.models.data_model      import (
@@ -61,9 +62,11 @@ class PatientService:
 
     @staticmethod
     def list_patients(
-        session     : Session
-        , name      : Optional[str] = None
-        , date_in   : Optional[date] = None
+        session   : Session
+        , name    : Optional[str]  = None
+        , date_in : Optional[date] = None
+        , limit   : int            = 100
+        , offset  : int            = 0
     ) -> List[PATIENT_MODEL]:
         query = session.query(PATIENT_MODEL).filter(
             PATIENT_MODEL.status_code == STATUS_CODE_ENUM.ACTIVE.value
@@ -73,10 +76,15 @@ class PatientService:
             query = query.filter(PATIENT_MODEL.full_name.ilike(f"%{name}%"))
         if date_in:
             query = query.filter(PATIENT_MODEL.date_in == date_in)
-        return query.order_by(
-            PATIENT_MODEL.date_in.desc()
-            , PATIENT_MODEL.full_name
-        ).all()
+        return (
+            query.order_by(
+                PATIENT_MODEL.date_in.desc()
+                , PATIENT_MODEL.full_name
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
 
     @staticmethod
@@ -113,7 +121,7 @@ class PatientService:
         for k, v in payload.model_dump(exclude_unset = True).items():
             setattr(patient, k, v)
         patient.updated_by       = username
-        patient.updated_datetime = datetime.utcnow()
+        patient.updated_datetime = utc_now_naive()
         session.commit()
         session.refresh(patient)
         logger.info(
@@ -129,7 +137,7 @@ class PatientService:
         patient = cls.get_patient(session, patient_id)
         patient.status_code      = STATUS_CODE_ENUM.DELETED.value
         patient.deleted_by       = username
-        patient.deleted_datetime = datetime.utcnow()
+        patient.deleted_datetime = utc_now_naive()
         session.commit()
         logger.info(
             "PatientService.delete_patient: soft-deleted"
@@ -167,10 +175,24 @@ class PatientService:
         dispensings = query.all()
         grouped: Dict[str, dict] = {}
 
+        # Batch-load patients to avoid N+1 queries inside the loop
+        patient_ids = {d.patient_id for d in dispensings if d.patient_id}
+        patients_by_id: Dict[UUID, PATIENT_MODEL] = {}
+        if patient_ids:
+            patient_rows = (
+                session.query(PATIENT_MODEL)
+                .filter(
+                    PATIENT_MODEL.id.in_(patient_ids)
+                    , PATIENT_MODEL.deleted_datetime.is_(None)
+                )
+                .all()
+            )
+            patients_by_id = {p.id: p for p in patient_rows}
+
         for d in dispensings:
             key = str(d.patient_id) if d.patient_id else d.patient_name.strip().lower()
             if key not in grouped:
-                p_rec = cls.get_patient(session, d.patient_id) if d.patient_id else None
+                p_rec = patients_by_id.get(d.patient_id) if d.patient_id else None
                 grouped[key] = {
                     "patient_id"      : d.patient_id
                     , "patient_name"  : p_rec.full_name if p_rec else d.patient_name

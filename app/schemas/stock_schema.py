@@ -3,7 +3,7 @@ from decimal  import Decimal
 from typing   import List, Optional
 from uuid     import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class StockLedgerUpsertItem(BaseModel):
@@ -41,8 +41,7 @@ class StockLedgerResponse(BaseModel):
     supplied_qty    : Decimal
     note            : Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)
 
 
 class StockBatchCreate(BaseModel):
@@ -71,5 +70,4 @@ class StockBatchResponse(BaseModel):
     expire_date     : Optional[date] = None
     note            : Optional[str]  = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes = True)

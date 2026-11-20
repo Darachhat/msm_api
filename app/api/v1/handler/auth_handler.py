@@ -4,9 +4,10 @@ from uuid   import UUID
 from fastapi        import APIRouter, Body, Depends, Request, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps.auth_deps          import get_current_user, is_mobile_client, require_csrf_if_web
+from app.api.deps.auth_deps          import get_current_user, is_mobile_client, require_csrf_if_web, require_roles
 from app.core.config                 import settings
 from app.core.db                     import getSession
+from app.core.enum                   import ROLE_CODE_ENUM
 from app.models.auth_model           import USER_MODEL
 from app.schemas.auth_schema         import (
     AccessTokenResponse
@@ -82,13 +83,21 @@ def _extract_refresh_token(request: Request, body: Optional[RefreshTokenBody]) -
 @router.post(
     "/register"
     , response_model = IResponseBase[UserResponse]
-    , summary        = "Register a new user"
+    , summary        = "Register a new user (Admin only)"
 )
 def register(
-    payload   : RegisterRequest
-    , session : Session = Depends(getSession)
+    payload        : RegisterRequest
+    , request      : Request
+    , current_user : USER_MODEL = Depends(require_roles([ROLE_CODE_ENUM.ADMIN.value]))
+    , session      : Session    = Depends(getSession)
 ):
-    user = AuthService.register(session, payload)
+    ip_address = request.client.host if request.client else None
+    user       = AuthService.register(
+        session      = session
+        , payload    = payload
+        , created_by = current_user.username
+        , ip_address = ip_address
+    )
     return IResponseBase(
         data      = UserResponse.model_validate(user)
         , message = "User registered successfully"

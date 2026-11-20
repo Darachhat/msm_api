@@ -46,14 +46,22 @@ def create_patient(
     , summary        = "List patients (filterable by name)"
 )
 def list_patients(
-    name           : Optional[str] = Query(None, description = "Filter by patient name")
+    name           : Optional[str]  = Query(None, description = "Filter by patient name")
     , date_in      : Optional[date] = Query(None)
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(
+    , limit        : int            = Query(100, ge = 1, le = 500)
+    , offset       : int            = Query(0, ge = 0)
+    , session      : Session        = Depends(getSession)
+    , current_user : USER_MODEL     = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.READ)
     )
 ):
-    rows = PatientService.list_patients(session, name = name, date_in = date_in)
+    rows = PatientService.list_patients(
+        session   = session
+        , name    = name
+        , date_in = date_in
+        , limit   = limit
+        , offset  = offset
+    )
     return IResponseBase(data = [PatientResponse.model_validate(r) for r in rows])
 
 
