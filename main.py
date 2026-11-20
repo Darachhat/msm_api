@@ -12,7 +12,7 @@ from app.api.v1.router     import router as v1_router
 from app.core.config       import settings
 from app.core.httpx_client import create_httpx_client, set_global_httpx_client
 from app.core.log          import logger
-from app.middleware        import LogMiddleware, TraceMiddleware
+from app.middleware        import AuthMiddleware, LogMiddleware, TraceMiddleware
 
 process_id = uuid4()
 
@@ -44,7 +44,10 @@ app = FastAPI(
     , lifespan    = lifespan
 )
 
+# Request flow:  TraceMiddleware → CORS → AuthMiddleware → LogMiddleware (inbound system_log) → Route
+# Response flow: Route → LogMiddleware → AuthMiddleware → CORS → TraceMiddleware
 app.middleware("http")(LogMiddleware.log_access)
+app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware
     , allow_origins     = settings.WHITE_LIST_CORS

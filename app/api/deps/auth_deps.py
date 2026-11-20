@@ -10,16 +10,45 @@ from app.core.config                 import settings
 from app.core.db                     import getSession
 from app.core.enum                   import PERMISSION_ACTION_ENUM, STATUS_CODE_ENUM
 from app.core.security               import decode_token, verify_csrf_token
-from app.models.auth_model           import USER_MODEL
+from app.middleware.types            import AuthContext
+from app.models.auth_model           import SYSTEM_MODEL, USER_MODEL
 from app.services.permission_service import PermissionService
 
 bearer_scheme = HTTPBearer(auto_error = True)
 
 
+def get_auth_context(request: Request) -> AuthContext:
+    """Return the AuthContext resolved by AuthMiddleware, or raise 401."""
+    auth_context: Optional[AuthContext] = getattr(request.state, "auth_context", None)
+    if auth_context is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED
+            , detail    = "Authentication required."
+        )
+    return auth_context
+
+
+def get_current_system(request: Request) -> SYSTEM_MODEL:
+    """Return the authenticated M2M SYSTEM_MODEL resolved by AuthMiddleware."""
+    auth_context = get_auth_context(request)
+    if auth_context.system is None:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN
+            , detail    = "System credentials required for this endpoint."
+        )
+    return auth_context.system
+
+
 def get_current_user(
-    credentials : HTTPAuthorizationCredentials = Depends(bearer_scheme)
-    , session   : Session = Depends(getSession)
+    request       : Request
+    , credentials : HTTPAuthorizationCredentials = Depends(bearer_scheme)
+    , session     : Session = Depends(getSession)
 ) -> USER_MODEL:
+    # Reuse user already verified by AuthMiddleware (avoids duplicate JWT decode + DB query)
+    auth_context: Optional[AuthContext] = getattr(request.state, "auth_context", None)
+    if auth_context is not None and auth_context.user is not None:
+        return session.merge(auth_context.user, load = False)
+
     token = credentials.credentials
     try:
         payload = decode_token(token, expected_type = "access")

@@ -118,11 +118,25 @@ class LogMiddleware:
         response_content_type = response.headers.get('content-type')
         parsed_response_body  = _parse_response_body(response_bytes, response_content_type)
         trace_id              = _extract_trace_id(parsed_response_body)
+        response.headers['X-Request-ID'] = trace_id
+
+        auth_context = getattr(request.state, 'auth_context', None)
+        system_code  = (
+            auth_context.system_code
+            if auth_context
+            else (getattr(request.state, 'system_code', None) or 'MSM_API')
+        )
+        channel      = (
+            auth_context.channel
+            if auth_context
+            else (getattr(request.state, 'channel', None) or CHANNEL_ENUM.API.value)
+        )
+        actor_name   = auth_context.username if auth_context else None
 
         # File log (logs/app.log)
         access_message = (
             f'{request.method} {request.url.path} {response.status_code} '
-            f'{duration_ms}ms ip: {client_ip or "N/A"}'
+            f'{duration_ms}ms system: {system_code} user: {actor_name or "-"} ip: {client_ip or "N/A"}'
         )
         if response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
             logger.error(access_message)
@@ -134,8 +148,8 @@ class LogMiddleware:
         # Database audit log (track.system_log) — non-blocking background write
         system_log_data = SYSTEM_LOG_DATA(
             traffic_type           = TRAFFIC_TYPE_ENUM.INBOUND.value
-            , system_code          = getattr(request.state, 'system_code', None) or 'MSM_API'
-            , channel              = getattr(request.state, 'channel', None) or CHANNEL_ENUM.API.value
+            , system_code          = system_code
+            , channel              = channel
             , request_method       = request.method
             , request_endpoint     = str(request.url.path)
             , request_netloc       = f'{request.url.scheme}://{request.url.netloc}' if request.url.netloc else None

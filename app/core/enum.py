@@ -70,3 +70,15 @@ class TRAFFIC_TYPE_ENUM(str, Enum):
 class CHANNEL_ENUM(str, Enum):
     API    = "API"
     SYSTEM = "SYSTEM"
+
+
+class AUTH_TYPE_ENUM(str, Enum):
+    JWT     = "JWT"
+    API_KEY = "API_KEY"
+    BEARER  = "BEARER"
+    BASIC   = "BASIC"
+
+
+class SCOPE_ENUM(str, Enum):
+    INTERNAL = "INTERNAL"
+    EXTERNAL = "EXTERNAL"
