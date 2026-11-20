@@ -107,7 +107,6 @@ jobs:
       DB_PASS: ${{ secrets.DB_PASS }}
       JWT_PRIVATE_KEY: ${{ secrets.JWT_PRIVATE_KEY }}
       JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
-      SMTP_PASS: ${{ secrets.SMTP_PASS }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       ANSIBLE_BECOME_PASS: ${{ secrets.SUDO_PASSWORD }}
@@ -166,11 +165,8 @@ jobs:
             -e "jwt_issuer=${{ vars.JWT_ISSUER || 'msm_api' }}" \
             -e "jwt_audience=${{ vars.JWT_AUDIENCE || 'msm_client' }}" \
             -e "cookie_secure=${{ vars.COOKIE_SECURE || 'true' }}" \
-            -e "cookie_samesite=${{ vars.COOKIE_SAMESITE || 'lax' }}" \
-            -e "smtp_host=${{ vars.SMTP_HOST }}" \
-            -e "smtp_port=${{ vars.SMTP_PORT || '587' }}" \
-            -e "smtp_user=${{ vars.SMTP_USER }}" \
-            -e "smtp_from=${{ vars.SMTP_FROM || 'no-reply@msm.local' }}"
+            -e "cookie_samesite=${{ vars.COOKIE_SAMESITE || 'lax' }}"
+
 
       - name: Remove SSH key
         if: always()

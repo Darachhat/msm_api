@@ -1,10 +1,10 @@
 -- =============================================================================
--- Migration 002: Create auth schema tables (role, user, refresh_token)
+-- Migration 002: Create role (base_data), user (data), and refresh_token (data)
 -- =============================================================================
 
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS auth.role (
+CREATE TABLE IF NOT EXISTS base_data.role (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     code varchar(50) NOT NULL,
     name varchar(150) NOT NULL,
@@ -21,14 +21,14 @@ CREATE TABLE IF NOT EXISTS auth.role (
     CONSTRAINT role_code_key UNIQUE (code)
 );
 
-CREATE TABLE IF NOT EXISTS auth."user" (
+CREATE TABLE IF NOT EXISTS data."user" (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     username varchar(100) NOT NULL,
     email varchar(255),
     full_name varchar(255) NOT NULL,
     full_name_kh varchar(255),
     password_hash text NOT NULL,
-    role_code varchar(50) NOT NULL DEFAULT 'PHARMACIST' REFERENCES auth.role(code),
+    role_code varchar(50) NOT NULL DEFAULT 'PHARMACIST' REFERENCES base_data.role(code),
     department_code varchar(50) REFERENCES base_data.department(code),
     is_active boolean NOT NULL DEFAULT true,
     last_login_datetime timestamp without time zone,
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS auth."user" (
     CONSTRAINT user_email_key UNIQUE (email)
 );
 
-CREATE TABLE IF NOT EXISTS auth.refresh_token (
+CREATE TABLE IF NOT EXISTS data.refresh_token (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES auth."user"(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES data."user"(id) ON DELETE CASCADE,
     jti varchar(100) NOT NULL,
     expires_at timestamp without time zone NOT NULL,
     revoked boolean NOT NULL DEFAULT false,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS auth.refresh_token (
 );
 
 -- Seed roles
-INSERT INTO auth.role (code, name, description) VALUES
+INSERT INTO base_data.role (code, name, description) VALUES
     ('ADMIN', 'Administrator', 'Full system and user management access'),
     ('PHARMACIST', 'Pharmacist', 'Manage stock, dispensing, and generate reports'),
     ('NURSE', 'Nurse / Duty Staff', 'Record patient dispensing entries'),

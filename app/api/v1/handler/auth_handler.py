@@ -8,16 +8,13 @@ from app.api.deps.auth_deps          import get_current_user, is_mobile_client, 
 from app.core.config                 import settings
 from app.core.db                     import getSession
 from app.core.enum                   import ROLE_CODE_ENUM
-from app.models.auth_model           import USER_MODEL
+from app.models.data_model           import USER_MODEL
 from app.schemas.auth_schema         import (
     AccessTokenResponse
     , ChangePasswordRequest
-    , ForgotPasswordRequest
-    , ForgotPasswordResponse
     , LoginRequest
     , RefreshTokenBody
     , RegisterRequest
-    , ResetPasswordRequest
     , SessionResponse
     , UserResponse
 )
@@ -272,51 +269,6 @@ def change_password(
         , user_agent        = user_agent
     )
     return IResponseBase(message = "Password changed successfully")
-
-
-@router.post(
-    "/forgot-password"
-    , response_model = IResponseBase[ForgotPasswordResponse]
-    , summary        = "Request a password reset email (returns dev token/link in dev mode)"
-)
-def forgot_password(
-    payload   : ForgotPasswordRequest
-    , request : Request
-    , session : Session = Depends(getSession)
-):
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("user-agent")
-    result     = AuthService.forgot_password(
-        session      = session
-        , payload    = payload
-        , ip_address = ip_address
-        , user_agent = user_agent
-    )
-    return IResponseBase(
-        data      = result
-        , message = "If the account exists, a password reset link has been sent."
-    )
-
-
-@router.post(
-    "/reset-password"
-    , response_model = IResponseBase[None]
-    , summary        = "Reset password using a single-use reset token"
-)
-def reset_password(
-    payload   : ResetPasswordRequest
-    , request : Request
-    , session : Session = Depends(getSession)
-):
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("user-agent")
-    AuthService.reset_password(
-        session      = session
-        , payload    = payload
-        , ip_address = ip_address
-        , user_agent = user_agent
-    )
-    return IResponseBase(message = "Password has been reset successfully")
 
 
 @router.get(

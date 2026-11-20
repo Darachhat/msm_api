@@ -24,8 +24,8 @@ from app.models.auth_model import (
     , CREDENTIAL_BEARER_MODEL
     , SYSTEM_CREDENTIAL_MODEL
     , SYSTEM_MODEL
-    , USER_MODEL
 )
+from app.models.data_model import USER_MODEL
 
 _SUPPORTED_AUTH_TYPES = frozenset({
     AUTH_TYPE_ENUM.API_KEY.value
@@ -227,8 +227,6 @@ class AuthMiddleware:
         , "/api/v1/auth/login"
         , "/api/v1/auth/refresh"
         , "/api/v1/auth/logout"
-        , "/api/v1/auth/forgot-password"
-        , "/api/v1/auth/reset-password"
         , "/api/v1/files/preview/"
         , "/api/v1/files/download/"
     )

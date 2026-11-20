@@ -49,21 +49,6 @@ class ChangePasswordRequest(BaseModel):
     new_password     : str = Field(..., min_length = 8, max_length = 128)
 
 
-class ForgotPasswordRequest(BaseModel):
-    identifier : str = Field(..., min_length = 3, max_length = 255, description = "Username or email address")
-
-
-class ForgotPasswordResponse(BaseModel):
-    dispatched      : bool          = True
-    dev_reset_token : Optional[str] = None
-    dev_reset_url   : Optional[str] = None
-
-
-class ResetPasswordRequest(BaseModel):
-    token        : str = Field(..., min_length = 16, max_length = 256)
-    new_password : str = Field(..., min_length = 8, max_length = 128)
-
-
 class SessionResponse(BaseModel):
     id                 : UUID
     family_id          : UUID

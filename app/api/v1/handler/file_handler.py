@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps.auth_deps    import get_current_user
 from app.core.db               import getSession
-from app.models.auth_model     import USER_MODEL
+from app.models.data_model     import USER_MODEL
 from app.schemas.base_schema   import IResponseBase
 from app.schemas.report_schema import FileObjectResponse
 from app.services.file_service import FileService

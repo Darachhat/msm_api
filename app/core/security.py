@@ -144,10 +144,6 @@ def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def generate_reset_token() -> str:
-    return secrets.token_urlsafe(32)
-
-
 def verify_csrf_token(cookie_token: Optional[str], header_token: Optional[str]) -> bool:
     if not cookie_token or not header_token:
         return False

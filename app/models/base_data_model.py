@@ -41,6 +41,64 @@ class STATUS_MODEL(Base):
     translate : Mapped[Optional["TRANSLATE_MODEL"]] = relationship("TRANSLATE_MODEL", foreign_keys=[translate_id])
 
 
+class ROLE_MODEL(Base):
+    """base_data.role — Role definitions (ADMIN, PHARMACIST, NURSE, VIEWER)."""
+
+    __tablename__  = "role"
+    __table_args__ = {"schema": "base_data"}
+
+    id           : Mapped[uuid.UUID]           = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code         : Mapped[str]                 = mapped_column(String(50), nullable=False, unique=True)
+    name         : Mapped[str]                 = mapped_column(String(150), nullable=False)
+    description  : Mapped[Optional[str]]       = mapped_column(Text, nullable=True)
+    translate_id : Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True)
+        , ForeignKey("base_data.translate.id")
+        , nullable = True
+    )
+
+
+class SERVICE_MODULE_MODEL(Base):
+    """base_data.service_module — Controllable services/modules for RBAC (DASHBOARD, PATIENT, STOCK, etc.)."""
+
+    __tablename__  = "service_module"
+    __table_args__ = {"schema": "base_data"}
+
+    id          : Mapped[uuid.UUID]     = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code        : Mapped[str]           = mapped_column(String(50), nullable=False, unique=True)
+    name        : Mapped[str]           = mapped_column(String(150), nullable=False)
+    description : Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sort_order  : Mapped[int]           = mapped_column(SmallInteger, nullable=False, default=0)
+
+
+class ROLE_PERMISSION_MODEL(Base):
+    """base_data.role_permission — Per-role, per-service Read/Write/Update/Delete flags."""
+
+    __tablename__  = "role_permission"
+    __table_args__ = {"schema": "base_data"}
+
+    id           : Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    role_code    : Mapped[str]       = mapped_column(
+        String(50)
+        , ForeignKey("base_data.role.code", ondelete="CASCADE")
+        , nullable = False
+    )
+    service_code : Mapped[str]       = mapped_column(
+        String(50)
+        , ForeignKey("base_data.service_module.code", ondelete="CASCADE")
+        , nullable = False
+    )
+    can_read     : Mapped[bool]      = mapped_column(Boolean, nullable=False, default=False)
+    can_write    : Mapped[bool]      = mapped_column(Boolean, nullable=False, default=False)
+    can_update   : Mapped[bool]      = mapped_column(Boolean, nullable=False, default=False)
+    can_delete   : Mapped[bool]      = mapped_column(Boolean, nullable=False, default=False)
+
+    service : Mapped[Optional["SERVICE_MODULE_MODEL"]] = relationship(
+        "SERVICE_MODULE_MODEL"
+        , foreign_keys = [service_code]
+    )
+
+
 class DEPARTMENT_MODEL(Base):
     """base_data.department — Hospital department (e.g., SURGICAL_ICU)."""
 

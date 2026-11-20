@@ -1,4 +1,11 @@
-from uuid import uuid4
+from pathlib import Path
+import sys
+from uuid    import uuid4
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path     = [p for p in sys.path if "khmer" not in p.lower()]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import jwt
 import pytest
@@ -21,7 +28,6 @@ from app.core.system_log_utils import SystemLogUtils
 from app.middleware.auth_middleware import AuthMiddleware
 from app.models import auth_model, base_data_model, data_model, track_model
 from app.models.base_model import Base
-from app.services.email_service import EmailService
 from app.services.permission_service import PermissionService
 from app.services.r2_object_service import R2ObjectService
 from main import app
@@ -125,8 +131,6 @@ def test_all_auth_and_health_routes_registered():
         , ("POST",   "/api/v1/auth/logout-all")
         , ("GET",    "/api/v1/auth/me")
         , ("POST",   "/api/v1/auth/change-password")
-        , ("POST",   "/api/v1/auth/forgot-password")
-        , ("POST",   "/api/v1/auth/reset-password")
         , ("GET",    "/api/v1/auth/sessions")
         , ("DELETE", "/api/v1/auth/sessions/{session_id}")
     }
@@ -193,33 +197,24 @@ def test_all_models_inherit_base_audit_columns():
         , "deleted_by"
     }
     models = Base.__subclasses__()
-    assert len(models) == 29
+    assert len(models) == 27
     for model_cls in models:
         assert required.issubset(set(model_cls.__table__.columns.keys()))
 
-
-def test_pluggable_email_service():
-    sent = []
-    EmailService.register_sender(lambda to, subj, body: sent.append((to, subj, body)))
-    try:
-        dispatched = EmailService.send_password_reset_email(
-            to_email      = "staff@hospital.local"
-            , username    = "nurse1"
-            , reset_url   = "http://localhost:3000/reset-password?token=abc"
-            , reset_token = "abc"
-        )
-        assert dispatched is True
-        assert len(sent) == 1
-    finally:
-        EmailService.register_sender(None)
+    # Verify schema placement after migrating 7 tables and deleting LOGIN_HISTORY_MODEL
+    assert base_data_model.ROLE_MODEL.__table__.schema == "base_data"
+    assert base_data_model.SERVICE_MODULE_MODEL.__table__.schema == "base_data"
+    assert base_data_model.ROLE_PERMISSION_MODEL.__table__.schema == "base_data"
+    assert data_model.USER_MODEL.__table__.schema == "data"
+    assert data_model.REFRESH_TOKEN_MODEL.__table__.schema == "data"
+    assert track_model.AUTH_AUDIT_LOG_MODEL.__table__.schema == "track"
+    assert not hasattr(auth_model, "LOGIN_HISTORY_MODEL")
 
 
-def test_r2_and_smtp_db_first_with_env_fallback(monkeypatch):
+def test_r2_db_first_with_env_fallback(monkeypatch):
     # Reset caches
     R2ObjectService._cached_config    = None
     R2ObjectService._cache_expires_at = 0.0
-    EmailService._cached_smtp         = None
-    EmailService._cache_expires_at    = 0.0
 
     # 1. Verify DB config takes precedence when present
     monkeypatch.setattr(
@@ -238,29 +233,9 @@ def test_r2_and_smtp_db_first_with_env_fallback(monkeypatch):
     assert r2_cfg["endpoint_url"] == "https://db-r2.example.com"
     assert r2_cfg["bucket_name"] == "db-bucket"
 
-    monkeypatch.setattr(
-        EmailService
-        , "_load_smtp_from_db"
-        , classmethod(lambda cls: {
-            "host"         : "smtp.db.local"
-            , "port"       : 587
-            , "user"       : "db_user"
-            , "password"   : "db_pass"
-            , "from_email" : "db@msm.local"
-            , "use_tls"    : True
-        })
-    )
-    smtp_cfg = EmailService.resolve_smtp_config()
-    assert smtp_cfg["host"] == "smtp.db.local"
-    assert smtp_cfg["from_email"] == "db@msm.local"
-
     # 2. Verify graceful fallback to .env when DB returns None
     R2ObjectService._cached_config    = None
     R2ObjectService._cache_expires_at = 0.0
-    EmailService._cached_smtp         = None
-    EmailService._cache_expires_at    = 0.0
     monkeypatch.setattr(R2ObjectService, "_load_config_from_db", classmethod(lambda cls: None))
-    monkeypatch.setattr(EmailService, "_load_smtp_from_db", classmethod(lambda cls: None))
 
     assert R2ObjectService.resolve_config()["region"] == "auto"
-    assert EmailService.resolve_smtp_config()["port"] == 587

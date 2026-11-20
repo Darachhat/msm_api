@@ -6,11 +6,12 @@ import sys
 import traceback
 from datetime import datetime, timedelta
 from enum     import Enum
+from pathlib  import Path
 
 from app.core.constants import DATE_FORMAT, PHNOM_PENH_TZ
 
-
-LOG_DIR                      = os.getenv('LOG_DIR', 'logs')
+_PROJECT_ROOT                = Path(__file__).resolve().parents[2]
+LOG_DIR                      = os.getenv('LOG_DIR', str(_PROJECT_ROOT / 'logs'))
 ARCHIVED_LOG_DIR             = os.path.join(LOG_DIR, 'archived')
 APP_LOG_PATH                 = os.path.join(LOG_DIR, 'app.log')
 TRACE_LOG_PATH               = os.path.join(LOG_DIR, 'trace.log')

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps.auth_deps         import require_permission
 from app.core.db                    import getSession
 from app.core.enum                  import PERMISSION_ACTION_ENUM, SERVICE_MODULE_ENUM
-from app.models.auth_model          import USER_MODEL
+from app.models.data_model          import USER_MODEL
 from app.schemas.base_schema        import IResponseBase
 from app.schemas.dashboard_schema   import DashboardSummaryResponse
 from app.services.dashboard_service import DashboardService

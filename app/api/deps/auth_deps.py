@@ -11,7 +11,8 @@ from app.core.db                     import getSession
 from app.core.enum                   import PERMISSION_ACTION_ENUM, STATUS_CODE_ENUM
 from app.core.security               import decode_token, verify_csrf_token
 from app.middleware.types            import AuthContext
-from app.models.auth_model           import SYSTEM_MODEL, USER_MODEL
+from app.models.auth_model           import SYSTEM_MODEL
+from app.models.data_model           import USER_MODEL
 from app.services.permission_service import PermissionService
 
 bearer_scheme = HTTPBearer(auto_error = True)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps.auth_deps            import require_permission, require_resource_permission
 from app.core.db                       import getSession
 from app.core.enum                     import PERMISSION_ACTION_ENUM, SERVICE_MODULE_ENUM
-from app.models.auth_model             import USER_MODEL
+from app.models.data_model             import USER_MODEL
 from app.schemas.base_schema           import IResponseBase
 from app.schemas.report_schema         import ReportExportResponse, ReportGenerateRequest
 from app.services.excel_report_service import ExcelReportService

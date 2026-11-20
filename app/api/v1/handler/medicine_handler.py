@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps.auth_deps      import get_current_user, require_roles
 from app.core.db                 import getSession
 from app.core.enum               import ROLE_CODE_ENUM
-from app.models.auth_model       import USER_MODEL
+from app.models.data_model       import USER_MODEL
 from app.schemas.base_schema     import IResponseBase
 from app.schemas.medicine_schema import (
     DepartmentResponse

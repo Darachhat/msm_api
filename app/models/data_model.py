@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal  import Decimal
 from typing   import List, Optional
 import uuid
@@ -7,6 +7,7 @@ from sqlalchemy                     import (
     BigInteger
     , Boolean
     , Date
+    , DateTime
     , ForeignKey
     , Integer
     , Numeric
@@ -17,8 +18,67 @@ from sqlalchemy                     import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm                 import Mapped, mapped_column, relationship
 
+from app.core.enum              import ROLE_CODE_ENUM
+from app.models.base_data_model import MEDICINE_MODEL, ROLE_MODEL
 from app.models.base_model      import Base
-from app.models.base_data_model import MEDICINE_MODEL
+
+
+class USER_MODEL(Base):
+    """data.user — Staff / API user accounts for JWT authentication."""
+
+    __tablename__  = "user"
+    __table_args__ = {"schema": "data"}
+
+    id                  : Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username            : Mapped[str]                = mapped_column(String(100), nullable=False, unique=True)
+    email               : Mapped[Optional[str]]      = mapped_column(String(255), nullable=True, unique=True)
+    full_name           : Mapped[str]                = mapped_column(String(255), nullable=False)
+    full_name_kh        : Mapped[Optional[str]]      = mapped_column(String(255), nullable=True)
+    password_hash       : Mapped[str]                = mapped_column(Text, nullable=False)
+    role_code           : Mapped[str]                = mapped_column(
+        String(50)
+        , ForeignKey("base_data.role.code")
+        , nullable = False
+        , default  = ROLE_CODE_ENUM.PHARMACIST.value
+    )
+    department_code     : Mapped[Optional[str]]      = mapped_column(
+        String(50)
+        , ForeignKey("base_data.department.code")
+        , nullable = True
+    )
+    is_active           : Mapped[bool]               = mapped_column(Boolean, nullable=False, default=True)
+    token_version       : Mapped[int]                = mapped_column(Integer, nullable=False, default=0)
+    last_login_datetime : Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    role : Mapped[Optional["ROLE_MODEL"]] = relationship("ROLE_MODEL", foreign_keys=[role_code])
+
+
+class REFRESH_TOKEN_MODEL(Base):
+    """data.refresh_token — Tracks refresh token families for rotation, reuse detection & session listing."""
+
+    __tablename__  = "refresh_token"
+    __table_args__ = {"schema": "data"}
+
+    id                 : Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id            : Mapped[uuid.UUID]          = mapped_column(
+        UUID(as_uuid=True)
+        , ForeignKey("data.user.id", ondelete="CASCADE")
+        , nullable = False
+    )
+    family_id          : Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), nullable=False, default=uuid.uuid4)
+    jti                : Mapped[str]                = mapped_column(String(100), nullable=False, unique=True)
+    token_hash         : Mapped[Optional[str]]      = mapped_column(String(128), nullable=True, unique=True)
+    replaced_by_jti    : Mapped[Optional[str]]      = mapped_column(String(100), nullable=True)
+    device_id          : Mapped[Optional[str]]      = mapped_column(String(255), nullable=True)
+    device_name        : Mapped[Optional[str]]      = mapped_column(String(255), nullable=True)
+    platform           : Mapped[Optional[str]]      = mapped_column(String(50), nullable=True)
+    ip_address         : Mapped[Optional[str]]      = mapped_column(String(100), nullable=True)
+    user_agent         : Mapped[Optional[str]]      = mapped_column(Text, nullable=True)
+    expires_at         : Mapped[datetime]           = mapped_column(DateTime, nullable=False)
+    last_used_datetime : Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoked            : Mapped[bool]               = mapped_column(Boolean, nullable=False, default=False)
+    revoked_datetime   : Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoke_reason      : Mapped[Optional[str]]      = mapped_column(String(100), nullable=True)
 
 
 class PATIENT_MODEL(Base):
@@ -80,7 +140,7 @@ class PATIENT_DISPENSING_ITEM_MODEL(Base):
     signature_note : Mapped[Optional[str]]       = mapped_column(String(255), nullable=True)
     note           : Mapped[Optional[str]]       = mapped_column(Text, nullable=True)
 
-    dispensing : Mapped["PATIENT_DISPENSING_MODEL"]   = relationship(
+    dispensing : Mapped["PATIENT_DISPENSING_MODEL"] = relationship(
         "PATIENT_DISPENSING_MODEL"
         , back_populates = "items"
     )
@@ -168,7 +228,7 @@ class DIGITAL_SIGNATURE_MODEL(Base):
     id             : Mapped[uuid.UUID]           = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id        : Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True)
-        , ForeignKey("auth.user.id", ondelete="SET NULL")
+        , ForeignKey("data.user.id", ondelete="SET NULL")
         , nullable = True
     )
     signer_name    : Mapped[str]                 = mapped_column(String(255), nullable=False)

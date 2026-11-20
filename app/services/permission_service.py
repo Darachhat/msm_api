@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.enum              import PERMISSION_ACTION_ENUM, ROLE_CODE_ENUM, STATUS_CODE_ENUM
 from app.core.log               import logger
-from app.models.auth_model      import ROLE_MODEL, ROLE_PERMISSION_MODEL, SERVICE_MODULE_MODEL, USER_MODEL
+from app.models.base_data_model import ROLE_MODEL, ROLE_PERMISSION_MODEL, SERVICE_MODULE_MODEL
+from app.models.data_model      import USER_MODEL
 from app.schemas.setting_schema import RolePermissionInput
 
 

@@ -8,9 +8,12 @@ from app.core.constants         import utc_now_naive
 from app.core.enum              import STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.core.security          import hash_password
-from app.models.auth_model      import LOGIN_HISTORY_MODEL, REFRESH_TOKEN_MODEL, ROLE_MODEL, USER_MODEL
+from app.models.base_data_model import ROLE_MODEL
+from app.models.data_model      import REFRESH_TOKEN_MODEL, USER_MODEL
+from app.models.track_model     import AUTH_AUDIT_LOG_MODEL
 from app.schemas.setting_schema import (
-    RoleCreate
+    LoginHistoryResponse
+    , RoleCreate
     , RolePermissionResponse
     , RoleResponse
     , UserCreateByAdmin
@@ -272,11 +275,26 @@ class SettingService:
         session        : Session
         , username     : Optional[str] = None
         , login_status : Optional[str] = None
-        , limit        : int = 100
-    ) -> List[LOGIN_HISTORY_MODEL]:
-        query = session.query(LOGIN_HISTORY_MODEL)
+        , limit        : int           = 100
+    ) -> List[LoginHistoryResponse]:
+        query = session.query(AUTH_AUDIT_LOG_MODEL).filter(
+            AUTH_AUDIT_LOG_MODEL.event_type.in_(["LOGIN_SUCCESS", "LOGIN_FAILED"])
+        )
         if username:
-            query = query.filter(LOGIN_HISTORY_MODEL.username.ilike(f"%{username}%"))
+            query = query.filter(AUTH_AUDIT_LOG_MODEL.username.ilike(f"%{username}%"))
         if login_status:
-            query = query.filter(LOGIN_HISTORY_MODEL.login_status == login_status)
-        return query.order_by(LOGIN_HISTORY_MODEL.login_datetime.desc()).limit(limit).all()
+            query = query.filter(AUTH_AUDIT_LOG_MODEL.event_status == login_status)
+        rows = query.order_by(AUTH_AUDIT_LOG_MODEL.created_datetime.desc()).limit(limit).all()
+        return [
+            LoginHistoryResponse(
+                id               = row.id
+                , user_id        = row.user_id
+                , username       = row.username or ""
+                , ip_address     = row.ip_address
+                , user_agent     = row.user_agent
+                , login_status   = row.event_status
+                , failure_reason = row.detail
+                , login_datetime = row.created_datetime
+            )
+            for row in rows
+        ]

@@ -1,10 +1,13 @@
+from pathlib           import Path
 from typing            import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file            = ".env"
+        env_file            = str(_PROJECT_ROOT / ".env")
         , env_file_encoding = "utf-8"
         , extra             = "ignore"
     )
@@ -43,15 +46,6 @@ class Settings(BaseSettings):
     LOGIN_RATE_LIMIT_MAX_ATTEMPTS   : int = 5
     LOGIN_RATE_LIMIT_WINDOW_SECONDS : int = 300
 
-    # Password Reset & SMTP
-    PASSWORD_RESET_EXPIRE_MINUTES : int  = 30
-    FRONTEND_RESET_PASSWORD_URL   : str  = "http://localhost:3000/reset-password"
-    SMTP_HOST                     : str  = ""
-    SMTP_PORT                     : int  = 587
-    SMTP_USER                     : str  = ""
-    SMTP_PASS                     : str  = ""
-    SMTP_FROM                     : str  = "no-reply@msm.local"
-    SMTP_USE_TLS                  : bool = True
 
     # Cloudflare R2 (optional fallback; primary config lives in auth.system CLOUDFLARE_R2)
     R2_ACCOUNT_ID               : str = ""

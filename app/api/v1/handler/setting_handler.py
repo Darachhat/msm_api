@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps.auth_deps     import require_permission
 from app.core.db                import getSession
 from app.core.enum              import PERMISSION_ACTION_ENUM, SERVICE_MODULE_ENUM
-from app.models.auth_model      import USER_MODEL
+from app.models.data_model      import USER_MODEL
 from app.schemas.auth_schema    import UserResponse
 from app.schemas.base_schema    import IResponseBase
 from app.schemas.setting_schema import (
@@ -188,4 +188,4 @@ def list_login_history(
     )
 ):
     rows = SettingService.list_login_history(session, username, login_status, limit)
-    return IResponseBase(data = [LoginHistoryResponse.model_validate(r) for r in rows])
+    return IResponseBase(data = rows)

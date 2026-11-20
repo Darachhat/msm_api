@@ -3,44 +3,36 @@ from typing   import Any, Dict, List, Optional, Tuple
 from uuid     import UUID, uuid4
 
 from fastapi        import HTTPException, status
-from sqlalchemy     import or_
 from sqlalchemy.orm import Session
 
 from app.core.config       import settings
 from app.core.constants    import utc_now_naive
 from app.core.enum         import STATUS_CODE_ENUM
 from app.core.log          import logger
-from app.core.rate_limiter import forgot_password_rate_limiter, login_rate_limiter, register_rate_limiter
+from app.core.rate_limiter import login_rate_limiter, register_rate_limiter
 from app.core.security     import (
     create_access_token
     , generate_csrf_token
     , generate_opaque_refresh_token
-    , generate_reset_token
     , hash_password
     , hash_token
     , needs_password_rehash
     , verify_password
 )
-from app.models.auth_model import (
-    AUTH_AUDIT_LOG_MODEL
-    , LOGIN_HISTORY_MODEL
-    , PASSWORD_RESET_TOKEN_MODEL
-    , REFRESH_TOKEN_MODEL
-    , ROLE_MODEL
+from app.models.base_data_model import ROLE_MODEL
+from app.models.data_model      import (
+    REFRESH_TOKEN_MODEL
     , USER_MODEL
 )
+from app.models.track_model     import AUTH_AUDIT_LOG_MODEL
 from app.schemas.auth_schema import (
     AccessTokenResponse
     , ChangePasswordRequest
     , DeviceInfo
-    , ForgotPasswordRequest
-    , ForgotPasswordResponse
     , LoginRequest
     , RegisterRequest
-    , ResetPasswordRequest
     , SessionResponse
 )
-from app.services.email_service      import EmailService
 from app.services.permission_service import PermissionService
 
 
@@ -99,16 +91,6 @@ class AuthService:
         , user_agent     : Optional[str]  = None
         , failure_reason : Optional[str]  = None
     ) -> None:
-        session.add(
-            LOGIN_HISTORY_MODEL(
-                user_id          = user_id
-                , username       = username
-                , ip_address     = ip_address
-                , user_agent     = user_agent
-                , login_status   = login_status
-                , failure_reason = failure_reason
-            )
-        )
         AuthService._audit(
             session        = session
             , event_type   = "LOGIN_SUCCESS" if login_status == "SUCCESS" else "LOGIN_FAILED"
@@ -679,151 +661,6 @@ class AuthService:
             , ip_address   = ip_address
             , user_agent   = user_agent
             , detail       = f"Password updated; revoked {revoked_count} other session(s); token_version={current_user.token_version}."
-        )
-        session.commit()
-
-
-    @classmethod
-    def forgot_password(
-        cls
-        , session    : Session
-        , payload    : ForgotPasswordRequest
-        , ip_address : Optional[str] = None
-        , user_agent : Optional[str] = None
-    ) -> ForgotPasswordResponse:
-        """Issue a single-use hashed reset token and dispatch email (returns dev token/link in dev mode)."""
-        identifier = payload.identifier.strip()
-        rate_keys  = [f"fp:id:{identifier.lower()}"]
-        if ip_address:
-            rate_keys.append(f"fp:ip:{ip_address}")
-        forgot_password_rate_limiter.enforce(rate_keys)
-        for key in rate_keys:
-            forgot_password_rate_limiter.record_attempt(key)
-
-        user       = (
-            session.query(USER_MODEL)
-            .filter(
-                or_(USER_MODEL.email == identifier, USER_MODEL.username == identifier)
-                , USER_MODEL.is_active.is_(True)
-                , USER_MODEL.status_code == STATUS_CODE_ENUM.ACTIVE.value
-                , USER_MODEL.deleted_datetime.is_(None)
-            )
-            .first()
-        )
-        if not user:
-            return ForgotPasswordResponse(dispatched = True)
-
-        now_utc   = _utc_now_naive()
-        raw_token = generate_reset_token()
-        reset_url = f"{settings.FRONTEND_RESET_PASSWORD_URL.rstrip('/')}?token={raw_token}"
-
-        session.add(
-            PASSWORD_RESET_TOKEN_MODEL(
-                user_id      = user.id
-                , token_hash = hash_token(raw_token)
-                , expires_at = now_utc + timedelta(minutes = settings.PASSWORD_RESET_EXPIRE_MINUTES)
-                , ip_address = ip_address
-                , created_by = user.username
-            )
-        )
-        cls._audit(
-            session        = session
-            , event_type   = "PASSWORD_RESET_REQUESTED"
-            , event_status = "SUCCESS"
-            , user_id      = user.id
-            , username     = user.username
-            , ip_address   = ip_address
-            , user_agent   = user_agent
-        )
-        session.commit()
-
-        if user.email:
-            EmailService.send_password_reset_email(
-                to_email      = user.email
-                , username    = user.username
-                , reset_url   = reset_url
-                , reset_token = raw_token
-            )
-
-        if settings.ENVIRONMENT.lower() == "dev":
-            return ForgotPasswordResponse(
-                dispatched        = True
-                , dev_reset_token = raw_token
-                , dev_reset_url   = reset_url
-            )
-        return ForgotPasswordResponse(dispatched = True)
-
-
-    @classmethod
-    def reset_password(
-        cls
-        , session    : Session
-        , payload    : ResetPasswordRequest
-        , ip_address : Optional[str] = None
-        , user_agent : Optional[str] = None
-    ) -> None:
-        """Consume a single-use reset token, set Argon2id password, bump token_version, and revoke all sessions."""
-        now_utc      = _utc_now_naive()
-        token_digest = hash_token(payload.token)
-        reset_record = (
-            session.query(PASSWORD_RESET_TOKEN_MODEL)
-            .filter(
-                PASSWORD_RESET_TOKEN_MODEL.token_hash == token_digest
-                , PASSWORD_RESET_TOKEN_MODEL.used_datetime.is_(None)
-            )
-            .first()
-        )
-        if not reset_record or reset_record.expires_at < now_utc:
-            cls._audit(
-                session        = session
-                , event_type   = "PASSWORD_RESET_COMPLETED"
-                , event_status = "FAILED"
-                , ip_address   = ip_address
-                , user_agent   = user_agent
-                , detail       = "Invalid or expired password reset token."
-            )
-            session.commit()
-            raise HTTPException(
-                status_code = status.HTTP_400_BAD_REQUEST
-                , detail    = "Invalid or expired password reset token."
-            )
-
-        user = (
-            session.query(USER_MODEL)
-            .filter(
-                USER_MODEL.id == reset_record.user_id
-                , USER_MODEL.is_active.is_(True)
-                , USER_MODEL.deleted_datetime.is_(None)
-            )
-            .first()
-        )
-        if not user:
-            raise HTTPException(
-                status_code = status.HTTP_404_NOT_FOUND
-                , detail    = "User account not found."
-            )
-
-        reset_record.used_datetime = now_utc
-        user.password_hash         = hash_password(payload.new_password)
-        user.token_version         = (user.token_version or 0) + 1
-        user.updated_by            = user.username
-        user.updated_datetime      = now_utc
-
-        revoked_count = cls._revoke_all_user_sessions(
-            session      = session
-            , user_id    = user.id
-            , reason     = "PASSWORD_RESET"
-            , updated_by = user.username
-        )
-        cls._audit(
-            session        = session
-            , event_type   = "PASSWORD_RESET_COMPLETED"
-            , event_status = "SUCCESS"
-            , user_id      = user.id
-            , username     = user.username
-            , ip_address   = ip_address
-            , user_agent   = user_agent
-            , detail       = f"Password reset completed; revoked {revoked_count} active session(s); token_version={user.token_version}."
         )
         session.commit()
 

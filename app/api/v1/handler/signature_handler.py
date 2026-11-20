@@ -8,7 +8,7 @@ from app.core.config                import settings
 from app.core.constants             import ALLOWED_SIGNATURE_EXTS, ALLOWED_SIGNATURE_MIMES
 from app.core.db                    import getSession
 from app.core.enum                  import PERMISSION_ACTION_ENUM, SERVICE_MODULE_ENUM
-from app.models.auth_model          import USER_MODEL
+from app.models.data_model          import USER_MODEL
 from app.schemas.base_schema        import IResponseBase
 from app.schemas.signature_schema   import SignatureCreate, SignatureResponse
 from app.services.signature_service import SignatureService

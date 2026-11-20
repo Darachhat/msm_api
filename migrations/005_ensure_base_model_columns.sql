@@ -32,6 +32,33 @@ ALTER TABLE IF EXISTS base_data.status
     ADD COLUMN IF NOT EXISTS updated_by varchar(100),
     ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
 
+ALTER TABLE IF EXISTS base_data.role
+    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
+    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS created_by varchar(100),
+    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
+    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
+
+ALTER TABLE IF EXISTS base_data.service_module
+    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
+    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS created_by varchar(100),
+    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
+    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
+
+ALTER TABLE IF EXISTS base_data.role_permission
+    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
+    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
+    ADD COLUMN IF NOT EXISTS created_by varchar(100),
+    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
+    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
+
 ALTER TABLE IF EXISTS base_data.department
     ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
     ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
@@ -78,9 +105,9 @@ ALTER TABLE IF EXISTS base_data.report_type
     ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
 
 -- -----------------------------------------------------------------------------
--- 2. auth schema tables
+-- 2. data schema tables
 -- -----------------------------------------------------------------------------
-ALTER TABLE IF EXISTS auth.role
+ALTER TABLE IF EXISTS data."user"
     ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
     ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
     ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
@@ -89,7 +116,7 @@ ALTER TABLE IF EXISTS auth.role
     ADD COLUMN IF NOT EXISTS updated_by varchar(100),
     ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
 
-ALTER TABLE IF EXISTS auth."user"
+ALTER TABLE IF EXISTS data.refresh_token
     ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
     ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
     ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
@@ -98,45 +125,6 @@ ALTER TABLE IF EXISTS auth."user"
     ADD COLUMN IF NOT EXISTS updated_by varchar(100),
     ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
 
-ALTER TABLE IF EXISTS auth.refresh_token
-    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
-    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS created_by varchar(100),
-    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
-    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
-
-ALTER TABLE IF EXISTS auth.service_module
-    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
-    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS created_by varchar(100),
-    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
-    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
-
-ALTER TABLE IF EXISTS auth.role_permission
-    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
-    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS created_by varchar(100),
-    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
-    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
-
-ALTER TABLE IF EXISTS auth.login_history
-    ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
-    ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
-    ADD COLUMN IF NOT EXISTS updated_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS deleted_datetime timestamp without time zone,
-    ADD COLUMN IF NOT EXISTS created_by varchar(100),
-    ADD COLUMN IF NOT EXISTS updated_by varchar(100),
-    ADD COLUMN IF NOT EXISTS deleted_by varchar(100);
-
--- -----------------------------------------------------------------------------
--- 3. data schema tables
--- -----------------------------------------------------------------------------
 ALTER TABLE IF EXISTS data.patient
     ADD COLUMN IF NOT EXISTS status_code varchar(20) NOT NULL DEFAULT 'ACTIVE',
     ADD COLUMN IF NOT EXISTS created_datetime timestamp without time zone NOT NULL DEFAULT now(),
