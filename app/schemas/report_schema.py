@@ -1,8 +1,9 @@
 from datetime import date, datetime
-from typing   import Any, Dict, Optional
+from decimal  import Decimal
+from typing   import Any, Dict, List, Optional
 from uuid     import UUID
 
-from pydantic import ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReportGenerateRequest(BaseModel):
@@ -46,3 +47,93 @@ class ReportExportResponse(BaseModel):
     file_object      : Optional[FileObjectResponse] = None
 
     model_config = ConfigDict(from_attributes = True)
+
+
+# --- JSON Report Data Schemas (consumed by msm_front report screens) ---
+
+class ReportMedicineRef(BaseModel):
+    id            : UUID
+    code          : str
+    name          : str
+    form_code     : str
+    form_name     : Optional[str] = None
+    dosage        : Optional[str] = None
+    category_code : str
+    is_narcotic   : bool          = False
+    sort_order    : int           = 0
+    status_code   : str           = "ACTIVE"
+
+
+class StockSummaryRow(BaseModel):
+    medicine      : ReportMedicineRef
+    opening       : Decimal            = Decimal("0")
+    received      : Decimal            = Decimal("0")
+    daily_used    : Dict[str, Decimal] = {}
+    used          : Decimal            = Decimal("0")
+    write_off     : Decimal            = Decimal("0")
+    closing       : Decimal            = Decimal("0")
+    requested_qty : Optional[Decimal]  = None
+    supplied_qty  : Optional[Decimal]  = None
+
+
+class StockSummaryReportResponse(BaseModel):
+    start_date : date
+    end_date   : date
+    days       : List[str]             = []
+    rows       : List[StockSummaryRow] = []
+
+
+class ReportRequestItemInput(BaseModel):
+    medicine_id   : UUID
+    requested_qty : Decimal = Field(default = Decimal("0"), ge = 0)
+    supplied_qty  : Decimal = Field(default = Decimal("0"), ge = 0)
+
+
+class ReportRequestsUpsert(BaseModel):
+    department_code : str                          = "SURGICAL_ICU"
+    start_date      : date
+    end_date        : date
+    items           : List[ReportRequestItemInput] = []
+
+
+class DailySheetRow(BaseModel):
+    patient_id   : Optional[UUID]     = None
+    patient_code : Optional[str]      = None
+    patient_name : str
+    sex          : Optional[str]      = None
+    age          : Optional[str]      = None
+    diagnostic   : Optional[str]      = None
+    province     : Optional[str]      = None
+    date_in      : Optional[date]     = None
+    quantities   : Dict[str, Decimal] = {}
+    first_at     : Optional[datetime] = None
+
+
+class DailySheetReportResponse(BaseModel):
+    start_date : date
+    end_date   : date
+    columns    : List[ReportMedicineRef] = []
+    rows       : List[DailySheetRow]     = []
+    totals     : Dict[str, Decimal]      = {}
+
+
+class MedicineUsagePatientEntry(BaseModel):
+    patient_id   : Optional[UUID] = None
+    patient_name : str
+    sex          : Optional[str]  = None
+    age          : Optional[str]  = None
+    quantity     : Decimal        = Decimal("0")
+    times        : int            = 0
+
+
+class MedicineUsageReportItem(BaseModel):
+    medicine      : ReportMedicineRef
+    total         : Decimal                         = Decimal("0")
+    patient_count : int                             = 0
+    patients      : List[MedicineUsagePatientEntry] = []
+
+
+class MedicineUsageReportResponse(BaseModel):
+    start_date : date
+    end_date   : date
+    items      : List[MedicineUsageReportItem] = []

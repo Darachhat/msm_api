@@ -177,6 +177,8 @@ class MEDICINE_MODEL(Base):
     is_narcotic     : Mapped[bool]                = mapped_column(Boolean, nullable=False, default=False)
     narcotic_doc_no : Mapped[Optional[str]]       = mapped_column(String(50), nullable=True)
     sort_order      : Mapped[int]                 = mapped_column(Integer, nullable=False, default=0)
+    min_stock       : Mapped[int]                 = mapped_column(Integer, nullable=False, default=0)
+    note            : Mapped[Optional[str]]       = mapped_column(Text, nullable=True)
     translate_id    : Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True)
         , ForeignKey("base_data.translate.id")

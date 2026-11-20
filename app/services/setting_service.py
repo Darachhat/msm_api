@@ -1,11 +1,14 @@
-from typing   import List, Optional
-from uuid     import UUID
+from datetime import date, datetime, time
+import re
+from typing   import Dict, List, Optional, Tuple
+from uuid     import UUID, uuid4
 
 from fastapi        import HTTPException, status
+from sqlalchemy     import func
 from sqlalchemy.orm import Session
 
 from app.core.constants         import utc_now_naive
-from app.core.enum              import STATUS_CODE_ENUM
+from app.core.enum              import ROLE_CODE_ENUM, STATUS_CODE_ENUM
 from app.core.log               import logger
 from app.core.security          import hash_password
 from app.models.base_data_model import ROLE_MODEL
@@ -16,10 +19,18 @@ from app.schemas.setting_schema import (
     , RoleCreate
     , RolePermissionResponse
     , RoleResponse
+    , RoleUpdate
     , UserCreateByAdmin
     , UserUpdateByAdmin
 )
 from app.services.permission_service import PermissionService
+
+
+def _generate_role_code(name: str) -> str:
+    slug = re.sub(r"[^A-Z0-9]+", "_", name.upper()).strip("_")[:40]
+    if len(slug) < 2:
+        slug = f"ROLE_{uuid4().hex[:6].upper()}"
+    return slug
 
 
 class SettingService:
@@ -201,13 +212,25 @@ class SettingService:
 
 
     @staticmethod
-    def list_roles(session: Session) -> List[RoleResponse]:
+    def _role_user_counts(session: Session) -> Dict[str, int]:
+        rows = (
+            session.query(USER_MODEL.role_code, func.count(USER_MODEL.id))
+            .filter(USER_MODEL.deleted_datetime.is_(None))
+            .group_by(USER_MODEL.role_code)
+            .all()
+        )
+        return {code: cnt for code, cnt in rows}
+
+
+    @classmethod
+    def list_roles(cls, session: Session) -> List[RoleResponse]:
         roles = (
             session.query(ROLE_MODEL)
             .filter(ROLE_MODEL.deleted_datetime.is_(None))
             .order_by(ROLE_MODEL.code)
             .all()
         )
+        counts = cls._role_user_counts(session)
         out: List[RoleResponse] = []
         for r in roles:
             perms = PermissionService.get_role_permissions(session, r.code)
@@ -218,28 +241,32 @@ class SettingService:
                     , name        = r.name
                     , description = r.description
                     , status_code = r.status_code
+                    , user_count  = counts.get(r.code, 0)
                     , permissions = [RolePermissionResponse.model_validate(p) for p in perms]
                 )
             )
         return out
 
 
-    @staticmethod
-    def create_role(session: Session, payload: RoleCreate, actor: str) -> RoleResponse:
-        existing = session.query(ROLE_MODEL).filter(ROLE_MODEL.code == payload.code).first()
+    @classmethod
+    def create_role(cls, session: Session, payload: RoleCreate, actor: str) -> RoleResponse:
+        code = (payload.code or "").strip().upper() or _generate_role_code(payload.name)
+        existing = session.query(ROLE_MODEL).filter(ROLE_MODEL.code == code).first()
         if existing:
-            logger.warn(
-                "SettingService.create_role: duplicate role code"
-                , f"code: {payload.code}"
-                , f"actor: {actor}"
-            )
-            raise HTTPException(
-                status_code = status.HTTP_409_CONFLICT
-                , detail    = "Role code already exists."
-            )
+            if payload.code:
+                logger.warn(
+                    "SettingService.create_role: duplicate role code"
+                    , f"code: {code}"
+                    , f"actor: {actor}"
+                )
+                raise HTTPException(
+                    status_code = status.HTTP_409_CONFLICT
+                    , detail    = "Role code already exists."
+                )
+            code = f"{code[:42]}_{uuid4().hex[:6].upper()}"
 
         role = ROLE_MODEL(
-            code          = payload.code.upper()
+            code          = code
             , name        = payload.name
             , description = payload.description
             , created_by  = actor
@@ -266,26 +293,147 @@ class SettingService:
             , name        = role.name
             , description = role.description
             , status_code = role.status_code
+            , user_count  = 0
             , permissions = [RolePermissionResponse.model_validate(p) for p in perms]
+        )
+
+
+    @classmethod
+    def update_role(
+        cls
+        , session   : Session
+        , role_code : str
+        , payload   : RoleUpdate
+        , actor     : str
+    ) -> RoleResponse:
+        role = (
+            session.query(ROLE_MODEL)
+            .filter(
+                ROLE_MODEL.code == role_code
+                , ROLE_MODEL.deleted_datetime.is_(None)
+            )
+            .first()
+        )
+        if not role:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND
+                , detail    = f"Role '{role_code}' not found."
+            )
+        if role.code == ROLE_CODE_ENUM.ADMIN.value:
+            raise HTTPException(
+                status_code = status.HTTP_400_BAD_REQUEST
+                , detail    = "System ADMIN role cannot be modified."
+            )
+
+        updates = payload.model_dump(exclude_unset = True, exclude = {"permissions"})
+        for k, v in updates.items():
+            setattr(role, k, v)
+        role.updated_by       = actor
+        role.updated_datetime = utc_now_naive()
+        session.commit()
+        session.refresh(role)
+
+        if payload.permissions is not None:
+            perms = PermissionService.set_role_permissions(
+                session       = session
+                , role_code   = role.code
+                , permissions = payload.permissions
+                , username    = actor
+            )
+        else:
+            perms = PermissionService.get_role_permissions(session, role.code)
+
+        counts = cls._role_user_counts(session)
+        return RoleResponse(
+            id            = role.id
+            , code        = role.code
+            , name        = role.name
+            , description = role.description
+            , status_code = role.status_code
+            , user_count  = counts.get(role.code, 0)
+            , permissions = [RolePermissionResponse.model_validate(p) for p in perms]
+        )
+
+
+    @classmethod
+    def delete_role(cls, session: Session, role_code: str, actor: str) -> None:
+        role = (
+            session.query(ROLE_MODEL)
+            .filter(
+                ROLE_MODEL.code == role_code
+                , ROLE_MODEL.deleted_datetime.is_(None)
+            )
+            .first()
+        )
+        if not role:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND
+                , detail    = f"Role '{role_code}' not found."
+            )
+        if role.code == ROLE_CODE_ENUM.ADMIN.value:
+            raise HTTPException(
+                status_code = status.HTTP_400_BAD_REQUEST
+                , detail    = "System ADMIN role cannot be deleted."
+            )
+
+        assigned = (
+            session.query(USER_MODEL.id)
+            .filter(
+                USER_MODEL.role_code == role.code
+                , USER_MODEL.deleted_datetime.is_(None)
+            )
+            .count()
+        )
+        if assigned > 0:
+            raise HTTPException(
+                status_code = status.HTTP_400_BAD_REQUEST
+                , detail    = f"Cannot delete role '{role.code}' because {assigned} user(s) are assigned to it."
+            )
+
+        role.status_code      = STATUS_CODE_ENUM.DELETED.value
+        role.deleted_by       = actor
+        role.deleted_datetime = utc_now_naive()
+        session.commit()
+        logger.info(
+            "SettingService.delete_role: soft-deleted"
+            , f"role_code: {role_code}"
+            , f"actor: {actor}"
         )
 
 
     @staticmethod
     def list_login_history(
         session        : Session
-        , username     : Optional[str] = None
-        , login_status : Optional[str] = None
-        , limit        : int           = 100
-    ) -> List[LoginHistoryResponse]:
+        , username     : Optional[str]  = None
+        , user_id      : Optional[UUID] = None
+        , login_status : Optional[str]  = None
+        , start_date   : Optional[date] = None
+        , end_date     : Optional[date] = None
+        , limit        : int            = 100
+        , offset       : int            = 0
+    ) -> Tuple[List[LoginHistoryResponse], int]:
         query = session.query(AUTH_AUDIT_LOG_MODEL).filter(
             AUTH_AUDIT_LOG_MODEL.event_type.in_(["LOGIN_SUCCESS", "LOGIN_FAILED"])
         )
         if username:
             query = query.filter(AUTH_AUDIT_LOG_MODEL.username.ilike(f"%{username}%"))
+        if user_id:
+            query = query.filter(AUTH_AUDIT_LOG_MODEL.user_id == user_id)
         if login_status:
             query = query.filter(AUTH_AUDIT_LOG_MODEL.event_status == login_status)
-        rows = query.order_by(AUTH_AUDIT_LOG_MODEL.created_datetime.desc()).limit(limit).all()
-        return [
+        if start_date:
+            query = query.filter(AUTH_AUDIT_LOG_MODEL.created_datetime >= datetime.combine(start_date, time.min))
+        if end_date:
+            query = query.filter(AUTH_AUDIT_LOG_MODEL.created_datetime <= datetime.combine(end_date, time.max))
+
+        total = query.count()
+        rows  = (
+            query.order_by(AUTH_AUDIT_LOG_MODEL.created_datetime.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        items = [
             LoginHistoryResponse(
                 id               = row.id
                 , user_id        = row.user_id
@@ -298,3 +446,4 @@ class SettingService:
             )
             for row in rows
         ]
+        return items, total

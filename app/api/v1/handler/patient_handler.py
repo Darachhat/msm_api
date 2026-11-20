@@ -28,14 +28,14 @@ router = APIRouter()
 )
 def create_patient(
     payload        : PatientCreate
-    , session      : Session = Depends(getSession)
+    , session      : Session    = Depends(getSession)
     , current_user : USER_MODEL = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.WRITE)
     )
 ):
     patient = PatientService.create_patient(session, payload, current_user.username)
     return IResponseBase(
-        data      = PatientResponse.model_validate(patient)
+        data      = patient
         , message = "Patient created"
     )
 
@@ -43,26 +43,34 @@ def create_patient(
 @router.get(
     ""
     , response_model = IResponseBase[List[PatientResponse]]
-    , summary        = "List patients (filterable by name)"
+    , summary        = "List patients (filterable by search/name, admission_status, and date range)"
 )
 def list_patients(
-    name           : Optional[str]  = Query(None, description = "Filter by patient name")
-    , date_in      : Optional[date] = Query(None)
-    , limit        : int            = Query(100, ge = 1, le = 500)
-    , offset       : int            = Query(0, ge = 0)
-    , session      : Session        = Depends(getSession)
-    , current_user : USER_MODEL     = Depends(
+    name               : Optional[str]  = Query(None, description = "Filter by patient name")
+    , search           : Optional[str]  = Query(None, description = "Search by name, code, or diagnosis")
+    , admission_status : Optional[str]  = Query(None, description = "ADMITTED | DISCHARGED")
+    , date_in          : Optional[date] = Query(None)
+    , start_date       : Optional[date] = Query(None)
+    , end_date         : Optional[date] = Query(None)
+    , limit            : int            = Query(100, ge = 1, le = 500)
+    , offset           : int            = Query(0, ge = 0)
+    , session          : Session        = Depends(getSession)
+    , current_user     : USER_MODEL     = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.READ)
     )
 ):
-    rows = PatientService.list_patients(
-        session   = session
-        , name    = name
-        , date_in = date_in
-        , limit   = limit
-        , offset  = offset
+    rows, total = PatientService.list_patients(
+        session            = session
+        , name             = name
+        , search           = search
+        , admission_status = admission_status
+        , date_in          = date_in
+        , start_date       = start_date
+        , end_date         = end_date
+        , limit            = limit
+        , offset           = offset
     )
-    return IResponseBase(data = [PatientResponse.model_validate(r) for r in rows])
+    return IResponseBase(data = rows, total = total)
 
 
 @router.get(
@@ -71,13 +79,14 @@ def list_patients(
     , summary        = "Patient medicine usage summary (Daily, Weekly, Monthly)"
 )
 def patient_usage_report(
-    start_date     : date = Query(...)
-    , period       : str = Query("DAILY", description = "DAILY | WEEKLY | MONTHLY")
+    start_date     : date           = Query(...)
+    , period       : str            = Query("DAILY", description = "DAILY | WEEKLY | MONTHLY")
     , end_date     : Optional[date] = Query(None)
+    , tabs         : Optional[str]  = Query(None, description = "Comma-separated: TABLET,INJECTION,NARCOTIC")
     , patient_id   : Optional[UUID] = Query(None)
-    , patient_name : Optional[str] = Query(None)
-    , session      : Session = Depends(getSession)
-    , current_user : USER_MODEL = Depends(
+    , patient_name : Optional[str]  = Query(None)
+    , session      : Session        = Depends(getSession)
+    , current_user : USER_MODEL     = Depends(
         require_permission(SERVICE_MODULE_ENUM.REPORT.value, PERMISSION_ACTION_ENUM.READ)
     )
 ):
@@ -86,6 +95,7 @@ def patient_usage_report(
         , start_date   = start_date
         , period       = period
         , end_date     = end_date
+        , tabs         = tabs
         , patient_id   = patient_id
         , patient_name = patient_name
     )
@@ -99,13 +109,13 @@ def patient_usage_report(
 )
 def get_patient(
     patient_id     : UUID
-    , session      : Session = Depends(getSession)
+    , session      : Session    = Depends(getSession)
     , current_user : USER_MODEL = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.READ)
     )
 ):
     patient = PatientService.get_patient(session, patient_id)
-    return IResponseBase(data = PatientResponse.model_validate(patient))
+    return IResponseBase(data = PatientService.to_response(patient))
 
 
 @router.put(
@@ -116,14 +126,14 @@ def get_patient(
 def update_patient(
     patient_id     : UUID
     , payload      : PatientUpdate
-    , session      : Session = Depends(getSession)
+    , session      : Session    = Depends(getSession)
     , current_user : USER_MODEL = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.UPDATE)
     )
 ):
     patient = PatientService.update_patient(session, patient_id, payload, current_user.username)
     return IResponseBase(
-        data      = PatientResponse.model_validate(patient)
+        data      = patient
         , message = "Patient updated"
     )
 
@@ -135,7 +145,7 @@ def update_patient(
 )
 def delete_patient(
     patient_id     : UUID
-    , session      : Session = Depends(getSession)
+    , session      : Session    = Depends(getSession)
     , current_user : USER_MODEL = Depends(
         require_permission(SERVICE_MODULE_ENUM.PATIENT.value, PERMISSION_ACTION_ENUM.DELETE)
     )

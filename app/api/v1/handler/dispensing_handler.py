@@ -12,13 +12,92 @@ from app.models.data_model           import USER_MODEL
 from app.schemas.base_schema         import IResponseBase
 from app.schemas.dispensing_schema   import (
     DispensingCreate
+    , DispensingLineResponse
     , DispensingResponse
     , DispensingUpdate
+    , DispensingVisitCreate
 )
 from app.services.dispensing_service import DispensingService
 from app.services.permission_service import PermissionService
 
 router = APIRouter()
+
+
+@router.get(
+    "/items"
+    , response_model = IResponseBase[List[DispensingLineResponse]]
+    , summary        = "List individual dispensing lines (usage history)"
+)
+def list_dispensing_items(
+    start_date        : Optional[date] = Query(None)
+    , end_date        : Optional[date] = Query(None)
+    , patient_id      : Optional[UUID] = Query(None)
+    , medicine_id     : Optional[UUID] = Query(None)
+    , tabs            : Optional[str]  = Query(None, description = "Comma-separated: TABLET,INJECTION,NARCOTIC")
+    , payment_code    : Optional[str]  = Query(None, description = "CASH | NSSF | HEF")
+    , department_code : Optional[str]  = Query(None)
+    , limit           : int            = Query(50, ge = 1, le = 500)
+    , offset          : int            = Query(0, ge = 0)
+    , session         : Session        = Depends(getSession)
+    , current_user    : USER_MODEL     = Depends(
+        require_resource_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.READ)
+    )
+):
+    effective_dept = department_code or (
+        None if current_user.role_code == "ADMIN" else current_user.department_code
+    )
+    rows, total = DispensingService.list_items(
+        session           = session
+        , start_date      = start_date
+        , end_date        = end_date
+        , patient_id      = patient_id
+        , medicine_id     = medicine_id
+        , tabs            = tabs
+        , payment_code    = payment_code
+        , department_code = effective_dept
+        , limit           = limit
+        , offset          = offset
+    )
+    return IResponseBase(data = rows, total = total)
+
+
+@router.post(
+    "/visit"
+    , response_model = IResponseBase[DispensingResponse]
+    , summary        = "Record patient medicine usage visit atomically with FEFO batch deduction"
+)
+def record_dispensing_visit(
+    payload        : DispensingVisitCreate
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.WRITE)
+    )
+):
+    PermissionService.enforce_department_scope(current_user, payload.department_code)
+    res = DispensingService.record_visit(session, payload, current_user.username)
+    return IResponseBase(
+        data      = res
+        , message = "Usage recorded"
+    )
+
+
+@router.delete(
+    "/items/{item_id}"
+    , response_model = IResponseBase[dict]
+    , summary        = "Delete one dispensing line item and restore stock batches"
+)
+def delete_dispensing_item(
+    item_id        : UUID
+    , session      : Session    = Depends(getSession)
+    , current_user : USER_MODEL = Depends(
+        require_permission(SERVICE_MODULE_ENUM.DISPENSING.value, PERMISSION_ACTION_ENUM.DELETE)
+    )
+):
+    DispensingService.delete_item(session, item_id, current_user.username)
+    return IResponseBase(
+        data      = {"id": str(item_id)}
+        , message = "Dispensing line deleted"
+    )
 
 
 @router.post(

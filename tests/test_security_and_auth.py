@@ -197,7 +197,7 @@ def test_all_models_inherit_base_audit_columns():
         , "deleted_by"
     }
     models = Base.__subclasses__()
-    assert len(models) == 27
+    assert len(models) == 28
     for model_cls in models:
         assert required.issubset(set(model_cls.__table__.columns.keys()))
 
@@ -239,3 +239,43 @@ def test_r2_db_first_with_env_fallback(monkeypatch):
     monkeypatch.setattr(R2ObjectService, "_load_config_from_db", classmethod(lambda cls: None))
 
     assert R2ObjectService.resolve_config()["region"] == "auto"
+
+
+def test_frontend_integration_routes_registered():
+    routes = {(list(r.methods)[0], r.path) for r in app.routes if hasattr(r, "methods") and r.methods}
+    expected = {
+        ("GET",    "/api/v1/medicines/forms")
+        , ("GET",    "/api/v1/medicines")
+        , ("POST",   "/api/v1/medicines")
+        , ("PUT",    "/api/v1/medicines/{medicine_id}")
+        , ("DELETE", "/api/v1/medicines/{medicine_id}")
+        , ("GET",    "/api/v1/patients")
+        , ("POST",   "/api/v1/patients")
+        , ("GET",    "/api/v1/patients/{patient_id}")
+        , ("PUT",    "/api/v1/patients/{patient_id}")
+        , ("DELETE", "/api/v1/patients/{patient_id}")
+        , ("GET",    "/api/v1/patients/usage-report")
+        , ("GET",    "/api/v1/stock/batches")
+        , ("POST",   "/api/v1/stock/batches/bulk")
+        , ("PUT",    "/api/v1/stock/batches/{batch_id}")
+        , ("DELETE", "/api/v1/stock/batches/{batch_id}")
+        , ("POST",   "/api/v1/stock/writeoff")
+        , ("DELETE", "/api/v1/stock/writeoff/{movement_id}")
+        , ("GET",    "/api/v1/stock/movements")
+        , ("GET",    "/api/v1/dispensing/items")
+        , ("POST",   "/api/v1/dispensing/visit")
+        , ("DELETE", "/api/v1/dispensing/items/{item_id}")
+        , ("GET",    "/api/v1/dashboard")
+        , ("GET",    "/api/v1/reports/data/stock-summary")
+        , ("PUT",    "/api/v1/reports/data/requests")
+        , ("GET",    "/api/v1/reports/data/daily-sheet")
+        , ("GET",    "/api/v1/reports/data/narcotic")
+        , ("GET",    "/api/v1/reports/data/medicine-usage")
+        , ("GET",    "/api/v1/settings/roles")
+        , ("POST",   "/api/v1/settings/roles")
+        , ("PUT",    "/api/v1/settings/roles/{role_code}")
+        , ("DELETE", "/api/v1/settings/roles/{role_code}")
+        , ("GET",    "/api/v1/settings/login-history")
+    }
+    assert expected.issubset(routes)
+

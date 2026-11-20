@@ -1,18 +1,19 @@
 import ast
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from datetime           import datetime, timezone
 import json
-import threading
-from datetime     import datetime, timezone
-from typing       import Any, Dict, Optional, Union
-from urllib.parse import urlparse
+from typing             import Any, Dict, Optional, Union
+from urllib.parse       import urlparse
 
-from app.core.constants         import REDACTED_BODY_KEYS, REDACTED_HEADER_KEYS
-from app.core.db                import getStaticSession
-from app.core.enum              import CHANNEL_ENUM, STATUS_CODE_ENUM, TRAFFIC_TYPE_ENUM
-from app.core.log               import logger
-from app.models.track_model     import SYSTEM_LOG_MODEL
-from app.schemas.base_schema    import get_ulid
+from app.core.constants            import REDACTED_BODY_KEYS, REDACTED_HEADER_KEYS
+from app.core.db                   import getStaticSession
+from app.core.enum                 import CHANNEL_ENUM, STATUS_CODE_ENUM, TRAFFIC_TYPE_ENUM
+from app.core.log                  import logger
+from app.models.track_model        import SYSTEM_LOG_MODEL
+from app.schemas.base_schema       import get_ulid
 from app.schemas.system_log_schema import SYSTEM_LOG_DATA
+
+_LOG_EXECUTOR = ThreadPoolExecutor(max_workers = 1, thread_name_prefix = "system-log")
 
 
 class SystemLogUtils:
@@ -92,20 +93,8 @@ class SystemLogUtils:
 
     @staticmethod
     def write_system_log_in_background(system_log_data: Union[SYSTEM_LOG_DATA, dict]) -> None:
-        """Dispatch system_log persistence to a background executor/thread without blocking the caller."""
-        try:
-            loop = asyncio.get_running_loop()
-            if loop.is_running():
-                loop.run_in_executor(None, SystemLogUtils._save_system_log, system_log_data)
-                return
-        except RuntimeError:
-            pass
-
-        threading.Thread(
-            target   = SystemLogUtils._save_system_log
-            , args   = (system_log_data,)
-            , daemon = True
-        ).start()
+        """Queue system_log persistence on a single background worker to avoid DB connection spikes."""
+        _LOG_EXECUTOR.submit(SystemLogUtils._save_system_log, system_log_data)
 
 
     @staticmethod

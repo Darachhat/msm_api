@@ -95,6 +95,7 @@ class PATIENT_MODEL(Base):
     diagnostic   : Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     pob_province : Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     date_in      : Mapped[date]          = mapped_column(Date, nullable=False, default=date.today)
+    date_out     : Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     note         : Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
@@ -115,6 +116,8 @@ class PATIENT_DISPENSING_MODEL(Base):
     sex              : Mapped[Optional[str]]                     = mapped_column(String(20), nullable=True)
     diagnostic       : Mapped[Optional[str]]                     = mapped_column(Text, nullable=True)
     address_province : Mapped[Optional[str]]                     = mapped_column(String(255), nullable=True)
+    shift_code       : Mapped[Optional[str]]                     = mapped_column(String(20), nullable=True)
+    payment_code     : Mapped[Optional[str]]                     = mapped_column(String(20), nullable=True)
     doctor_name      : Mapped[Optional[str]]                     = mapped_column(String(255), nullable=True)
     duty_chief_name  : Mapped[Optional[str]]                     = mapped_column(String(255), nullable=True)
     prepared_by_name : Mapped[Optional[str]]                     = mapped_column(String(255), nullable=True)
@@ -189,6 +192,7 @@ class STOCK_BATCH_MODEL(Base):
     department_code : Mapped[str]            = mapped_column(String(50), ForeignKey("base_data.department.code"), nullable=False)
     medicine_id     : Mapped[uuid.UUID]      = mapped_column(UUID(as_uuid=True), ForeignKey("base_data.medicine.id"), nullable=False)
     batch_no        : Mapped[Optional[str]]  = mapped_column(String(100), nullable=True)
+    source          : Mapped[Optional[str]]  = mapped_column(String(255), nullable=True)
     total_qty       : Mapped[Decimal]        = mapped_column(Numeric(12, 2), nullable=False, default=0)
     remaining_qty   : Mapped[Decimal]        = mapped_column(Numeric(12, 2), nullable=False, default=0)
     input_date      : Mapped[date]           = mapped_column(Date, nullable=False, default=date.today)
@@ -196,6 +200,43 @@ class STOCK_BATCH_MODEL(Base):
     note            : Mapped[Optional[str]]  = mapped_column(Text, nullable=True)
 
     medicine : Mapped[Optional["MEDICINE_MODEL"]] = relationship("MEDICINE_MODEL", foreign_keys=[medicine_id])
+
+
+class STOCK_MOVEMENT_MODEL(Base):
+    """data.stock_movement — Audit ledger of stock IN, USAGE, EXPIRED, DAMAGED, and ADJUSTMENT movements."""
+
+    __tablename__  = "stock_movement"
+    __table_args__ = {"schema": "data"}
+
+    id                 : Mapped[uuid.UUID]           = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    department_code    : Mapped[str]                 = mapped_column(
+        String(50)
+        , ForeignKey("base_data.department.code")
+        , nullable = False
+    )
+    medicine_id        : Mapped[uuid.UUID]           = mapped_column(
+        UUID(as_uuid=True)
+        , ForeignKey("base_data.medicine.id")
+        , nullable = False
+    )
+    batch_id           : Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True)
+        , ForeignKey("data.stock_batch.id", ondelete="SET NULL")
+        , nullable = True
+    )
+    dispensing_item_id : Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True)
+        , ForeignKey("data.patient_dispensing_item.id", ondelete="SET NULL")
+        , nullable = True
+    )
+    movement_type      : Mapped[str]                 = mapped_column(String(20), nullable=False)  # IN | USAGE | EXPIRED | DAMAGED | ADJUSTMENT
+    movement_date      : Mapped[date]                = mapped_column(Date, nullable=False, default=date.today, index=True)
+    quantity           : Mapped[Decimal]             = mapped_column(Numeric(12, 2), nullable=False, default=0)
+    note               : Mapped[Optional[str]]       = mapped_column(Text, nullable=True)
+
+    medicine        : Mapped[Optional["MEDICINE_MODEL"]]                = relationship("MEDICINE_MODEL", foreign_keys=[medicine_id])
+    batch           : Mapped[Optional["STOCK_BATCH_MODEL"]]             = relationship("STOCK_BATCH_MODEL", foreign_keys=[batch_id])
+    dispensing_item : Mapped[Optional["PATIENT_DISPENSING_ITEM_MODEL"]] = relationship("PATIENT_DISPENSING_ITEM_MODEL", foreign_keys=[dispensing_item_id])
 
 
 class FILE_OBJECT_MODEL(Base):

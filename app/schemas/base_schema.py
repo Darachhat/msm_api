@@ -24,3 +24,4 @@ class IResponseBase(BaseModel, Generic[DataType]):
     status   : int                = 1
     message  : str                = "Success"
     data     : Optional[DataType] = None
+    total    : Optional[int]      = None

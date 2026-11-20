@@ -2,7 +2,7 @@ from datetime import datetime
 from typing   import List, Optional
 from uuid     import UUID
 
-from pydantic import ConfigDict, BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class ServiceModuleResponse(BaseModel):
@@ -36,10 +36,16 @@ class RolePermissionResponse(BaseModel):
 
 
 class RoleCreate(BaseModel):
-    code        : str                       = Field(..., min_length = 2, max_length = 50)
+    code        : Optional[str]             = Field(None, min_length = 2, max_length = 50)
     name        : str                       = Field(..., min_length = 1, max_length = 150)
     description : Optional[str]             = None
     permissions : List[RolePermissionInput] = []
+
+
+class RoleUpdate(BaseModel):
+    name        : Optional[str]                       = Field(None, min_length = 1, max_length = 150)
+    description : Optional[str]                       = None
+    permissions : Optional[List[RolePermissionInput]] = None
 
 
 class RoleResponse(BaseModel):
@@ -48,6 +54,7 @@ class RoleResponse(BaseModel):
     name        : str
     description : Optional[str]                = None
     status_code : str
+    user_count  : int                          = 0
     permissions : List[RolePermissionResponse] = []
 
     model_config = ConfigDict(from_attributes = True)
@@ -58,7 +65,7 @@ class UserCreateByAdmin(BaseModel):
     email           : Optional[EmailStr] = None
     full_name       : str                = Field(..., min_length = 1, max_length = 255)
     full_name_kh    : Optional[str]      = None
-    password        : str                = Field(..., min_length = 6, max_length = 128)
+    password        : str                = Field(..., min_length = 8, max_length = 128)
     role_code       : str                = "PHARMACIST"
     department_code : Optional[str]      = "SURGICAL_ICU"
 
@@ -67,7 +74,7 @@ class UserUpdateByAdmin(BaseModel):
     email           : Optional[EmailStr] = None
     full_name       : Optional[str]      = None
     full_name_kh    : Optional[str]      = None
-    password        : Optional[str]      = Field(None, min_length = 6, max_length = 128)
+    password        : Optional[str]      = Field(None, min_length = 8, max_length = 128)
     role_code       : Optional[str]      = None
     department_code : Optional[str]      = None
     is_active       : Optional[bool]     = None

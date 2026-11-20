@@ -16,11 +16,12 @@ database_url = URL.create(
 
 engine = create_engine(
     database_url
-    , pool_size     = 10
-    , max_overflow  = 5
-    , pool_timeout  = 10
+    , pool_size     = 4
+    , max_overflow  = 2
+    , pool_timeout  = 15
     , pool_recycle  = 1800
     , pool_pre_ping = True
+    , connect_args  = {"connect_timeout": 5}
     , echo          = False
 )
 
