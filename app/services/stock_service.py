@@ -5,6 +5,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enum              import STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.base_data_model import MEDICINE_MODEL
 from app.models.data_model      import STOCK_BATCH_MODEL, STOCK_LEDGER_MODEL
 from app.schemas.stock_schema   import (
@@ -26,6 +27,11 @@ class StockService:
         elif item.medicine_code:
             med = session.query(MEDICINE_MODEL).filter(MEDICINE_MODEL.code == item.medicine_code).first()
         if not med:
+            logger.warn(
+                "StockService._resolve_medicine: medicine not found"
+                , f"medicine_id: {item.medicine_id}"
+                , f"medicine_code: {item.medicine_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = f"Medicine not found (id={item.medicine_id}, code={item.medicine_code})."
@@ -108,6 +114,13 @@ class StockService:
         session.commit()
         for r in results:
             session.refresh(r)
+        logger.info(
+            "StockService.batch_upsert: completed"
+            , f"stock_date: {payload.stock_date}"
+            , f"department_code: {payload.department_code}"
+            , f"items_count: {len(results)}"
+            , f"username: {username}"
+        )
         return [cls._to_response(r) for r in results]
 
 
@@ -180,6 +193,11 @@ class StockService:
         elif payload.medicine_code:
             med = session.query(MEDICINE_MODEL).filter(MEDICINE_MODEL.code == payload.medicine_code).first()
         if not med:
+            logger.warn(
+                "StockService.insert_stock_batch: medicine not found"
+                , f"medicine_id: {payload.medicine_id}"
+                , f"medicine_code: {payload.medicine_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Medicine not found."
@@ -230,6 +248,14 @@ class StockService:
         session.commit()
         session.refresh(batch)
         batch.medicine = med
+        logger.info(
+            "StockService.insert_stock_batch: inserted"
+            , f"batch_id: {batch.id}"
+            , f"department_code: {payload.department_code}"
+            , f"medicine_code: {med.code}"
+            , f"total_qty: {payload.total_qty}"
+            , f"username: {username}"
+        )
         return cls._batch_to_response(batch)
 
 

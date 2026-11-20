@@ -7,6 +7,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enum              import STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.base_data_model import MEDICINE_MODEL
 from app.models.data_model      import (
     PATIENT_DISPENSING_ITEM_MODEL
@@ -47,6 +48,11 @@ class DispensingService:
                 .first()
             )
         if not med:
+            logger.warn(
+                "DispensingService._resolve_medicine: medicine not found"
+                , f"medicine_id: {item.medicine_id}"
+                , f"medicine_code: {item.medicine_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = f"Medicine not found (id={item.medicine_id}, code={item.medicine_code})."
@@ -215,6 +221,13 @@ class DispensingService:
                 )
 
         session.commit()
+        logger.info(
+            "DispensingService.create_dispensing: created"
+            , f"dispensing_id: {record.id}"
+            , f"department_code: {payload.department_code}"
+            , f"items_count: {len(payload.items)}"
+            , f"username: {username}"
+        )
         return cls.get_dispensing(session, record.id)
 
 
@@ -263,6 +276,10 @@ class DispensingService:
             .first()
         )
         if not record:
+            logger.warn(
+                "DispensingService.get_dispensing: not found"
+                , f"dispensing_id: {dispensing_id}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Dispensing record not found."
@@ -316,6 +333,11 @@ class DispensingService:
                 )
 
         session.commit()
+        logger.info(
+            "DispensingService.update_dispensing: updated"
+            , f"dispensing_id: {dispensing_id}"
+            , f"username: {username}"
+        )
         return cls.get_dispensing(session, record.id)
 
 
@@ -330,6 +352,11 @@ class DispensingService:
             .first()
         )
         if not record:
+            logger.warn(
+                "DispensingService.delete_dispensing: not found"
+                , f"dispensing_id: {dispensing_id}"
+                , f"username: {username}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Dispensing record not found."
@@ -338,3 +365,8 @@ class DispensingService:
         record.deleted_by       = username
         record.deleted_datetime = datetime.utcnow()
         session.commit()
+        logger.info(
+            "DispensingService.delete_dispensing: soft-deleted"
+            , f"dispensing_id: {dispensing_id}"
+            , f"username: {username}"
+        )

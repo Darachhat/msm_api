@@ -3,6 +3,7 @@ from uuid   import UUID
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enum              import STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.data_model      import DIGITAL_SIGNATURE_MODEL
 from app.schemas.signature_schema import SignatureCreate, SignatureResponse
 from app.services.file_service  import FileService
@@ -68,6 +69,13 @@ class SignatureService:
         session.commit()
         session.refresh(sig)
         sig.file_object = file_obj
+        logger.info(
+            "SignatureService.save_signature: saved"
+            , f"signature_id: {sig.id}"
+            , f"user_id: {user_id}"
+            , f"signer_name: {payload.signer_name}"
+            , f"is_default: {payload.is_default}"
+        )
         return cls._to_response(sig)
 
 

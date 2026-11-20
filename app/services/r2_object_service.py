@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 from fastapi             import HTTPException, status
 
 from app.core.config import settings
+from app.core.log    import logger
 
 
 class R2ObjectService:
@@ -24,6 +25,7 @@ class R2ObjectService:
             endpoint_url = f"https://{settings.R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
         if not endpoint_url or not settings.R2_ACCESS_KEY_ID or not settings.R2_SECRET_ACCESS_KEY:
+            logger.error("R2ObjectService._get_client: Cloudflare R2 credentials are not configured.")
             raise HTTPException(
                 status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
                 , detail    = "Cloudflare R2 credentials are not configured."
@@ -57,8 +59,20 @@ class R2ObjectService:
                 , Body       = data
                 , ContentType= content_type
             )
+            logger.info(
+                "R2ObjectService.upload_bytes: uploaded"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+                , f"size: {len(data)}"
+            )
             return object_key
         except ClientError as exc:
+            logger.error(
+                "R2ObjectService.upload_bytes: upload failed"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+                , f"error: {exc}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_502_BAD_GATEWAY
                 , detail    = f"Failed to upload object to R2: {exc}"
@@ -79,10 +93,21 @@ class R2ObjectService:
         except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
             if code in ("NoSuchKey", "404"):
+                logger.warn(
+                    "R2ObjectService.get_object_bytes: object not found"
+                    , f"bucket: {bucket_name}"
+                    , f"key: {object_key}"
+                )
                 raise HTTPException(
                     status_code = status.HTTP_404_NOT_FOUND
                     , detail    = "File not found in R2 storage."
                 )
+            logger.error(
+                "R2ObjectService.get_object_bytes: read failed"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+                , f"error: {exc}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_502_BAD_GATEWAY
                 , detail    = f"Failed to read object from R2: {exc}"
@@ -99,7 +124,18 @@ class R2ObjectService:
         client      = cls._get_client()
         try:
             client.delete_object(Bucket = bucket_name, Key = object_key)
+            logger.info(
+                "R2ObjectService.delete_object: deleted"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+            )
         except ClientError as exc:
+            logger.error(
+                "R2ObjectService.delete_object: delete failed"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+                , f"error: {exc}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_502_BAD_GATEWAY
                 , detail    = f"Failed to delete object from R2: {exc}"
@@ -130,6 +166,12 @@ class R2ObjectService:
                 , ExpiresIn  = expires_in or settings.R2_PRESIGNED_EXPIRE_SECONDS
             )
         except ClientError as exc:
+            logger.error(
+                "R2ObjectService.generate_presigned_url: failed"
+                , f"bucket: {bucket_name}"
+                , f"key: {object_key}"
+                , f"error: {exc}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_502_BAD_GATEWAY
                 , detail    = f"Failed to generate presigned URL: {exc}"

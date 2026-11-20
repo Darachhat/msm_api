@@ -7,6 +7,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enum              import REPORT_PERIOD_ENUM, STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.data_model      import (
     PATIENT_DISPENSING_ITEM_MODEL
     , PATIENT_DISPENSING_MODEL
@@ -50,6 +51,11 @@ class PatientService:
         session.add(patient)
         session.commit()
         session.refresh(patient)
+        logger.info(
+            "PatientService.create_patient: created"
+            , f"patient_id: {patient.id}"
+            , f"username: {username}"
+        )
         return patient
 
 
@@ -84,6 +90,10 @@ class PatientService:
             .first()
         )
         if not patient:
+            logger.warn(
+                "PatientService.get_patient: not found"
+                , f"patient_id: {patient_id}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Patient not found."
@@ -106,6 +116,11 @@ class PatientService:
         patient.updated_datetime = datetime.utcnow()
         session.commit()
         session.refresh(patient)
+        logger.info(
+            "PatientService.update_patient: updated"
+            , f"patient_id: {patient_id}"
+            , f"username: {username}"
+        )
         return patient
 
 
@@ -116,6 +131,11 @@ class PatientService:
         patient.deleted_by       = username
         patient.deleted_datetime = datetime.utcnow()
         session.commit()
+        logger.info(
+            "PatientService.delete_patient: soft-deleted"
+            , f"patient_id: {patient_id}"
+            , f"username: {username}"
+        )
 
 
     @classmethod

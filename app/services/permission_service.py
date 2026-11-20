@@ -6,6 +6,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enum              import PERMISSION_ACTION_ENUM, ROLE_CODE_ENUM, STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.auth_model      import ROLE_MODEL, ROLE_PERMISSION_MODEL, SERVICE_MODULE_MODEL, USER_MODEL
 from app.schemas.setting_schema import RolePermissionInput
 
@@ -71,6 +72,11 @@ class PermissionService:
     ) -> List[ROLE_PERMISSION_MODEL]:
         role = session.query(ROLE_MODEL).filter(ROLE_MODEL.code == role_code).first()
         if not role:
+            logger.warn(
+                "PermissionService.set_role_permissions: role not found"
+                , f"role_code: {role_code}"
+                , f"username: {username}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = f"Role '{role_code}' not found."
@@ -80,6 +86,11 @@ class PermissionService:
         now_utc        = datetime.now(timezone.utc).replace(tzinfo=None)
         for perm in permissions:
             if perm.service_code not in valid_services:
+                logger.warn(
+                    "PermissionService.set_role_permissions: invalid service_code"
+                    , f"role_code: {role_code}"
+                    , f"service_code: {perm.service_code}"
+                )
                 raise HTTPException(
                     status_code = status.HTTP_400_BAD_REQUEST
                     , detail    = f"Invalid service_code: {perm.service_code}"
@@ -114,6 +125,12 @@ class PermissionService:
                 )
 
         session.commit()
+        logger.info(
+            "PermissionService.set_role_permissions: updated"
+            , f"role_code: {role_code}"
+            , f"count: {len(permissions)}"
+            , f"username: {username}"
+        )
         return cls.get_role_permissions(session, role_code)
 
 
@@ -162,6 +179,12 @@ class PermissionService:
         if not target_department_code:
             return
         if current_user.department_code != target_department_code:
+            logger.warn(
+                "PermissionService.enforce_department_scope: denied"
+                , f"username: {current_user.username}"
+                , f"user_dept: {current_user.department_code}"
+                , f"target_dept: {target_department_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_403_FORBIDDEN
                 , detail    = f"Access denied for department '{target_department_code}'."
@@ -181,6 +204,12 @@ class PermissionService:
             return
         if owner_username is not None and current_user.username == owner_username:
             return
+        logger.warn(
+            "PermissionService.enforce_owner_or_admin: denied"
+            , f"username: {current_user.username}"
+            , f"owner_user_id: {owner_user_id}"
+            , f"owner_username: {owner_username}"
+        )
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN
             , detail    = "Resource-level permission denied: you do not own this resource."

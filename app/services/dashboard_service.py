@@ -4,6 +4,7 @@ from typing   import Optional
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.enum              import MEDICINE_CATEGORY_ENUM, STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.base_data_model import MEDICINE_MODEL
 from app.models.data_model      import (
     PATIENT_DISPENSING_MODEL
@@ -129,6 +130,16 @@ class DashboardService:
             med_qty_map[b.medicine_id]["remaining_qty"] += b.remaining_qty or Decimal("0")
 
         low_stock = [v for v in med_qty_map.values() if v["remaining_qty"] <= Decimal("10")]
+
+        logger.info(
+            "DashboardService.get_summary: completed"
+            , f"department_code: {department_code}"
+            , f"total_medicines: {total_medicines}"
+            , f"total_patients: {total_patients}"
+            , f"dispensing_today: {total_dispensing_today}"
+            , f"nearly_expired: {len(nearly_expired)}"
+            , f"low_stock: {len(low_stock)}"
+        )
 
         return DashboardSummaryResponse(
             total_medicines          = total_medicines

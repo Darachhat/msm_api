@@ -6,6 +6,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enum              import STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.core.security          import hash_password
 from app.models.auth_model      import LOGIN_HISTORY_MODEL, ROLE_MODEL, USER_MODEL
 from app.schemas.setting_schema import (
@@ -36,6 +37,11 @@ class SettingService:
     def create_user(session: Session, payload: UserCreateByAdmin, actor: str) -> USER_MODEL:
         existing = session.query(USER_MODEL).filter(USER_MODEL.username == payload.username).first()
         if existing:
+            logger.warn(
+                "SettingService.create_user: duplicate username"
+                , f"username: {payload.username}"
+                , f"actor: {actor}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT
                 , detail    = "Username already exists."
@@ -43,6 +49,11 @@ class SettingService:
 
         role = session.query(ROLE_MODEL).filter(ROLE_MODEL.code == payload.role_code).first()
         if not role:
+            logger.warn(
+                "SettingService.create_user: invalid role_code"
+                , f"role_code: {payload.role_code}"
+                , f"actor: {actor}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_400_BAD_REQUEST
                 , detail    = "Invalid role_code."
@@ -63,6 +74,13 @@ class SettingService:
         session.add(user)
         session.commit()
         session.refresh(user)
+        logger.info(
+            "SettingService.create_user: created"
+            , f"user_id: {user.id}"
+            , f"username: {user.username}"
+            , f"role_code: {user.role_code}"
+            , f"actor: {actor}"
+        )
         return user
 
 
@@ -82,6 +100,11 @@ class SettingService:
             .first()
         )
         if not user:
+            logger.warn(
+                "SettingService.update_user: user not found"
+                , f"user_id: {user_id}"
+                , f"actor: {actor}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "User not found."
@@ -98,6 +121,11 @@ class SettingService:
         user.updated_datetime = datetime.utcnow()
         session.commit()
         session.refresh(user)
+        logger.info(
+            "SettingService.update_user: updated"
+            , f"user_id: {user_id}"
+            , f"actor: {actor}"
+        )
         return user
 
 
@@ -112,6 +140,11 @@ class SettingService:
             .first()
         )
         if not user:
+            logger.warn(
+                "SettingService.delete_user: user not found"
+                , f"user_id: {user_id}"
+                , f"actor: {actor}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "User not found."
@@ -121,6 +154,11 @@ class SettingService:
         user.deleted_by       = actor
         user.deleted_datetime = datetime.utcnow()
         session.commit()
+        logger.info(
+            "SettingService.delete_user: soft-deleted"
+            , f"user_id: {user_id}"
+            , f"actor: {actor}"
+        )
 
 
     @staticmethod
@@ -151,6 +189,11 @@ class SettingService:
     def create_role(session: Session, payload: RoleCreate, actor: str) -> RoleResponse:
         existing = session.query(ROLE_MODEL).filter(ROLE_MODEL.code == payload.code).first()
         if existing:
+            logger.warn(
+                "SettingService.create_role: duplicate role code"
+                , f"code: {payload.code}"
+                , f"actor: {actor}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT
                 , detail    = "Role code already exists."
@@ -165,6 +208,12 @@ class SettingService:
         session.add(role)
         session.commit()
         session.refresh(role)
+        logger.info(
+            "SettingService.create_role: created"
+            , f"role_id: {role.id}"
+            , f"code: {role.code}"
+            , f"actor: {actor}"
+        )
 
         perms = PermissionService.set_role_permissions(
             session       = session

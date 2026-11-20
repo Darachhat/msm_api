@@ -6,6 +6,7 @@ from fastapi        import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.enum              import STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.base_data_model import (
     DEPARTMENT_MODEL
     , MEDICINE_CATEGORY_MODEL
@@ -52,6 +53,10 @@ class MedicineService:
             .first()
         )
         if not med:
+            logger.warn(
+                "MedicineService.get_medicine: not found"
+                , f"medicine_id: {medicine_id}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Medicine not found."
@@ -63,6 +68,11 @@ class MedicineService:
     def create_medicine(session: Session, payload: MedicineCreate, username: str) -> MEDICINE_MODEL:
         existing = session.query(MEDICINE_MODEL).filter(MEDICINE_MODEL.code == payload.code).first()
         if existing:
+            logger.warn(
+                "MedicineService.create_medicine: duplicate code"
+                , f"code: {payload.code}"
+                , f"username: {username}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_409_CONFLICT
                 , detail    = "Medicine code already exists."
@@ -75,6 +85,12 @@ class MedicineService:
         session.add(med)
         session.commit()
         session.refresh(med)
+        logger.info(
+            "MedicineService.create_medicine: created"
+            , f"medicine_id: {med.id}"
+            , f"code: {med.code}"
+            , f"username: {username}"
+        )
         return med
 
 
@@ -93,6 +109,11 @@ class MedicineService:
         med.updated_datetime = datetime.utcnow()
         session.commit()
         session.refresh(med)
+        logger.info(
+            "MedicineService.update_medicine: updated"
+            , f"medicine_id: {medicine_id}"
+            , f"username: {username}"
+        )
         return med
 
 
@@ -103,6 +124,11 @@ class MedicineService:
         med.deleted_by       = username
         med.deleted_datetime = datetime.utcnow()
         session.commit()
+        logger.info(
+            "MedicineService.delete_medicine: soft-deleted"
+            , f"medicine_id: {medicine_id}"
+            , f"username: {username}"
+        )
 
 
     @staticmethod

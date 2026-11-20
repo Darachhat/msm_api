@@ -11,6 +11,7 @@ from fastapi         import HTTPException, status
 from sqlalchemy.orm  import Session, joinedload
 
 from app.core.enum              import MEDICINE_CATEGORY_ENUM, REPORT_TYPE_ENUM, STATUS_CODE_ENUM
+from app.core.log               import logger
 from app.models.base_data_model import DEPARTMENT_MODEL, MEDICINE_MODEL
 from app.models.data_model      import (
     PATIENT_DISPENSING_ITEM_MODEL
@@ -621,10 +622,23 @@ class ExcelReportService:
             .first()
         )
         if not dept:
+            logger.warn(
+                "ExcelReportService.generate_report: department not found"
+                , f"department_code: {payload.department_code}"
+                , f"username: {username}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "Department not found."
             )
+
+        logger.info(
+            "ExcelReportService.generate_report: starting"
+            , f"report_type: {payload.report_type_code}"
+            , f"department_code: {payload.department_code}"
+            , f"period: {payload.period}"
+            , f"username: {username}"
+        )
 
         start_date, end_date = PatientService.resolve_period_range(
             start_date   = payload.start_date
@@ -658,6 +672,10 @@ class ExcelReportService:
             )
             fname = f"patient_usage_{payload.period.lower()}_{category_code.lower()}_{start_date.isoformat()}_{end_date.isoformat()}"
         else:
+            logger.warn(
+                "ExcelReportService.generate_report: unsupported report_type_code"
+                , f"report_type: {payload.report_type_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_400_BAD_REQUEST
                 , detail    = f"Unsupported report_type_code: {payload.report_type_code}"
@@ -693,4 +711,12 @@ class ExcelReportService:
         session.commit()
         session.refresh(export_row)
         export_row.file_object = file_obj
+        logger.info(
+            "ExcelReportService.generate_report: completed"
+            , f"export_id: {export_row.id}"
+            , f"report_type: {payload.report_type_code}"
+            , f"filename: {fname}.xlsx"
+            , f"size: {len(xlsx_bytes)}"
+            , f"username: {username}"
+        )
         return export_row

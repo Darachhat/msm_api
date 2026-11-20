@@ -9,6 +9,7 @@ from sqlalchemy.orm   import Session
 
 from app.core.config        import settings
 from app.core.enum          import STATUS_CODE_ENUM
+from app.core.log           import logger
 from app.models.data_model  import FILE_OBJECT_MODEL
 from app.services.r2_object_service import R2ObjectService
 
@@ -67,6 +68,14 @@ class FileService:
         )
         session.add(file_obj)
         session.flush()
+        logger.info(
+            "FileService.upload_and_register: registered"
+            , f"path_code: {path_code}"
+            , f"module: {module}"
+            , f"filename: {filename}"
+            , f"size: {len(content)}"
+            , f"created_by: {created_by}"
+        )
         return file_obj
 
 
@@ -82,6 +91,10 @@ class FileService:
             .first()
         )
         if not file_obj:
+            logger.warn(
+                "FileService.get_by_path_code: file not found"
+                , f"path_code: {path_code}"
+            )
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND
                 , detail    = "File not found."
@@ -112,6 +125,13 @@ class FileService:
         encoded_name = urllib.parse.quote(full_name)
         disposition  = "inline" if inline else "attachment"
 
+        logger.info(
+            "FileService.serve_file: serving file"
+            , f"path_code: {path_code}"
+            , f"disposition: {disposition}"
+            , f"size: {len(data)}"
+        )
+
         return Response(
             content    = data
             , media_type = file_obj.mime_type
@@ -140,6 +160,11 @@ class FileService:
             , bucket      = file_obj.r2_bucket
             , disposition = "inline" if inline else "attachment"
             , filename    = full_name
+        )
+        logger.info(
+            "FileService.get_presigned_url: generated"
+            , f"path_code: {path_code}"
+            , f"inline: {inline}"
         )
         return {
             "path_code"    : file_obj.path_code
